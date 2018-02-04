@@ -93,6 +93,7 @@ Temporary Items
 
 # Ignore all executable files and the license file in bin/
 bin/
+model/mjkey.txt
 
 # ==============================================================================
 # Windows

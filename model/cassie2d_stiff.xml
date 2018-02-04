@@ -1,8 +1,8 @@
 <!-- Note: Component inertias are known to be incorrect in this version -->
 <mujoco model='cassie'>
-  <compiler inertiafromgeom='false' angle='degree' eulerseq='zyx' meshdir='cassie-stl-meshes'/>
+  <compiler inertiafromgeom='false' angle='degree' eulerseq='zyx' meshdir='/home/tapgar/workspace/ThirdParty/mjpro150/model/cassie-stl-meshes'/>
   <size nuser_actuator='1' nuser_sensor='1'/>
-  <option timestep='0.0005' iterations='50' solver='PGS' gravity='0 0 -9.8'/>
+  <option timestep='0.0005' iterations='50' solver='PGS' cone='elliptic' gravity='0 0 -9.806'/>
   <!-- Timestep is set to 0.0005 because our controller runs at 2 kHz -->
   <!-- Larger values still have stable dynamics -->
 
@@ -13,7 +13,7 @@
 
   <default>
     <joint limited='true'/>
-    <geom contype='0' conaffinity='0' condim='1'  solref=".005 1" solimp=".8 .8 .01" material='cassie'/>
+    <geom contype='0' conaffinity='0' condim='1'  solref='.01 1' solimp='.99 .99 .01' material='cassie' friction='1 0.005 0.0001'/>
     <motor ctrllimited='true'/>
   </default>
 
@@ -55,10 +55,10 @@
     <light directional='true' pos='0 0 3' dir='0 0 -1' diffuse='0.2 0.2 0.2' specular='0 0 0'/>
     <camera name='trackcom' pos='0 -3 2' zaxis='0 -1 0.5' mode='trackcom'/>
 
-    <body name='pelvis' pos='0 0 1.01'>
+    <body name='pelvis' pos='0 0 0.0'>
       <inertial pos='0.0507 0 0.0284' mass='10.33' fullinertia='0.094158 0.084066 0.11277 0.000169 0.015026 0.000516'/>
       <joint name='body_x' type='slide' axis='1 0 0' pos='0 0 0' limited='false'/>
-      <joint name='body_z' type='slide' axis='0 0 1' pos='0 0 0' limited='false' ref='1.01'/>
+      <joint name='body_z' type='slide' axis='0 0 1' pos='0 0 0' limited='false' ref='0.0'/>
       <joint name='body_pitch' type='hinge' axis='0 1 0' pos='0 0 0' limited='false'/>
       <geom type='mesh' mesh='pelvis'/>
       <geom type='sphere' size='0.15' pos='0.02 0 0.02' rgba='0.9 0.5 0.1 0' contype='1'/>
@@ -95,9 +95,8 @@
                     <joint name='left_toe' type='hinge' ref='-50' range='-140 -30' damping='1' armature='0.01225'/>
                     <geom type='mesh' mesh='left_toe'/>
                     <geom type='capsule' size='0.02' fromto='-0.052821 0.092622 0 0.069746 -0.010224 0' rgba='0.9 0.5 0.1 0' contype='2' conaffinity='4'/>
-                  	<site name="left_contact_front" type="sphere" pos="-0.0407 0.107 0" size="0.005" rgba="0.1 0.7 0.2 1"/>
-                  	<site name="left_contact_rear" type="sphere" pos="0.08 0.005 0" size="0.005" rgba="0.7 0.2 0.1 1"/>
-                  	<site name="left_foot_pt" type="sphere" pos="0.01965 0.05375 0" size="0.005" rgba="0.2 0.1 0.7 1"/>
+                  	<site name='left_contact_front' type='sphere' pos='-0.0407 0.107 0' size='0.005' rgba='0.1 0.7 0.2 1'/>
+                  	<site name='left_contact_rear' type='sphere' pos='0.08 0.005 0' size='0.005' rgba='0.7 0.2 0.1 1'/>
                   </body>
 
                   <body name='left_heel_spring' pos='-0.01269 -0.03059 0.00092' xyaxes='-0.91213 0.40824 0.036944 -0.40987 -0.90954 -0.068843'>
@@ -148,9 +147,8 @@
                     <joint name='right_toe' type='hinge' ref='-50' range='-140 -30' damping='1' armature='0.01225'/>
                     <geom type='mesh' mesh='right_toe'/>
                     <geom type='capsule' size='0.02' fromto='-0.052821 0.092622 0 0.069746 -0.010224 0' rgba='0.9 0.5 0.1 0' contype='4' conaffinity='2'/>
-                    <site name="right_contact_front" type="sphere" pos="-0.0407 0.107 0" size="0.005" rgba="0.1 0.7 0.2 1"/>
-                  	<site name="right_contact_rear" type="sphere" pos="0.08 0.005 0" size="0.005" rgba="0.7 0.2 0.1 1"/>
-                  	<site name="right_foot_pt" type="sphere" pos="0.01965 0.05375 0" size="0.005" rgba="0.2 0.1 0.7 1"/>
+                    <site name='right_contact_front' type='sphere' pos='-0.0407 0.107 0' size='0.005' rgba='0.1 0.7 0.2 1'/>
+		    <site name='right_contact_rear' type='sphere' pos='0.08 0.005 0' size='0.005' rgba='0.7 0.2 0.1 1'/>
                   </body>
 
                   <body name='right_heel_spring' pos='-0.01269 -0.03059 -0.00092' xyaxes='-0.91213 0.40824 -0.036944 -0.40987 -0.90954 0.068843'>
@@ -185,10 +183,10 @@
     <!-- User parameter is the maximum no-load motor RPM -->
     <motor name='left_hip' joint='left_hip' gear='16' ctrllimited='true' ctrlrange='-12.2 12.2' user='1300'/>
     <motor name='left_knee_spring' joint='left_knee_spring' gear='16' ctrllimited='true' ctrlrange='-12.2 12.2' user='1300'/>
-    <motor name='left_toe' joint='left_toe' gear='50' ctrllimited='true' ctrlrange='-0.9 0.9' user='5500'/>
+    <motor name='left_toe' joint='left_toe' gear='100' ctrllimited='true' ctrlrange='-0.9 0.9' user='5500'/>
     <motor name='right_hip' joint='right_hip' gear='16' ctrllimited='true' ctrlrange='-12.2 12.2' user='1300'/>
     <motor name='right_knee_spring' joint='right_knee_spring' gear='16' ctrllimited='true' ctrlrange='-12.2 12.2' user='1300'/>
-    <motor name='right_toe' joint='right_toe' gear='50' ctrllimited='true' ctrlrange='-0.9 0.9' user='5500'/>
+    <motor name='right_toe' joint='right_toe' gear='100' ctrllimited='true' ctrlrange='-0.9 0.9' user='5500'/>
   </actuator>
 
   <sensor>
