@@ -7,6 +7,9 @@
 
 #include "Cassie2d.h"
 
+// use relative paths. Put your MuJoCo key inside /model
+const char* MUJOCO_LICENSE_PATH = "/model/mjkey.txt";
+const char* XML_FILE_PATH = "/model/cassie2d_stiff.xml";
 
 /*
  * external functions used by python interface
@@ -42,9 +45,9 @@ Cassie2d::Cassie2d() {
   dyn_model_.LoadModel(xml_model_filename);
 
   //active mujoco and create data
-  mj_activate("/home/tapgar/workspace/RLProject/model/mjkey.txt");
+  mj_activate(MUJOCO_LICENSE_PATH);
   char error[1000] = "Could not load model";
-  mj_model_ = mj_loadXML("/home/tapgar/workspace/RLProject/model/cassie2d_stiff.xml", 0, error, 1000);
+  mj_model_ = mj_loadXML(XML_FILE_PATH, 0, error, 1000);
   if (!mj_model_) {
     mju_error_s("Load model error: %s", error);
     return;
