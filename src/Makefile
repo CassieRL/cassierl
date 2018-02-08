@@ -3,7 +3,7 @@ QPDIR := $(WRKDIR)/ThirdParty/qpOASES-3.2.1
 EIGENDIR := $(WRKDIR)/ThirdParty/eigen
 RBDLDIR := $(WRKDIR)/ThirdParty/rbdl
 MJDIR   := $(WRKDIR)/ThirdParty/mjpro150
-HEADDIR := $(WRKDIR)/RLProject
+HEADDIR := $(WRKDIR)/cassierl
 SRCDIR := $(HEADDIR)/src
 CASSIEDIR := $(SRCDIR)/Cassie2d
 OUTDIR := $(HEADDIR)/bin
@@ -31,17 +31,17 @@ INCL = -I$(CASSIEDIR) -I$(SRCDIR) -I$(EIGENDIR) -I$(QPDIR)/include -I$(MJDIR)/in
 CXX = g++
 
 # C++ Compiler options
-CXXFLAGS = -std=c++11 -O3 -pipe -DNDEBUG -Wl,-rpath,$(QPDIR)/bin,-rpath,$(RBDLDIR)/build,-rpath,$(MJDIR)/bin -Wparentheses -Wreturn-type -Wpointer-arith -Wwrite-strings -Wno-unknown-pragmas -Wno-long-long -fPIC -DLINUX -D__USE_LONG_INTEGERS__ -D__USE_LONG_FINTS__ -DSOLVER_NONE -D__NO_COPYRIGHT__ 
+CXXFLAGS = -std=c++11 -O3 -pipe -DNDEBUG -Wl,-rpath,$(QPDIR)/bin,-rpath,$(RBDLDIR)/build,-rpath,$(MJDIR)/bin -Wparentheses -Wreturn-type -Wpointer-arith -Wwrite-strings -Wno-unknown-pragmas -Wno-long-long -fPIC -DLINUX -D__USE_LONG_INTEGERS__ -D__USE_LONG_FINTS__ -DSOLVER_NONE -D__NO_COPYRIGHT__
 
 # The following is necessary under cygwin, if native compilers are used
 CYGPATH_W = echo
 
 all: test
-	mkdir -p bin
 
 .SUFFIXES: .cpp .c .o .obj
 
 test: $(OBJS)
+	mkdir -p ../bin
 	bla=;\
 	for file in $(OBJS); do bla="$$bla `$(CYGPATH_W) $$file`"; done; \
 	$(CXX) -shared $(CXXFLAGS) $(INCL) -o $(OUTDIR)/libcassie2d.so $$bla $(LIBS)
