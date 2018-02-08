@@ -37,6 +37,7 @@ CXXFLAGS = -std=c++11 -O3 -pipe -DNDEBUG -Wl,-rpath,$(QPDIR)/bin,-rpath,$(RBDLDI
 CYGPATH_W = echo
 
 all: test
+	mkdir -p bin
 
 .SUFFIXES: .cpp .c .o .obj
 
@@ -51,6 +52,7 @@ main: $(OBJS)
 	$(CXX) -shared $(CXXFLAGS) $(INCL) -o $(OUTDIR)/libcassie2d.so $$bla $(LIBS)
 	$(CXX) $(CXXFLAGS) -Wl,-rpath,../bin main.cpp $(INCL) -o $(OUTDIR)/test $$bla $(LIBS) -L../bin -lcassie2d
 
+.PHONY: clean
 clean:
 	rm -rf $(OUTDIR)/libcassie2d.so $(OBJS) $(FOBJS)
 
