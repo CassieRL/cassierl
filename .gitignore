@@ -2,6 +2,13 @@
 # Custom files you want to ignore go here
 # ==============================================================================
 
+# Executables in bin/ directory
+bin/
+
+# MuJoCo License Key and log
+mjkey.txt
+MUJOCO_LOG.TXT
+
 # Eclipse workspace
 .cproject
 .project
@@ -97,14 +104,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-
-# ==============================================================================
-# MuJoCo
-# ==============================================================================
-
-# Ignore all executable files and the license file in bin/
-bin/
-model/mjkey.txt
 
 # ==============================================================================
 # Python
