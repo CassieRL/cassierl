@@ -1,6 +1,6 @@
 <!-- Note: Component inertias are known to be incorrect in this version -->
 <mujoco model='cassie'>
-  <compiler inertiafromgeom='false' angle='degree' eulerseq='zyx' meshdir='cassie-stl-meshes-lowres'/>
+  <compiler inertiafromgeom='false' angle='degree' eulerseq='zyx' meshdir='cassie-stl-meshes'/>
   <size nuser_actuator='1' nuser_sensor='1'/>
   <option timestep='0.0005' iterations='50' solver='PGS' cone='elliptic' gravity='0 0 -9.806'/>
   <!-- Timestep is set to 0.0005 because our controller runs at 2 kHz -->
