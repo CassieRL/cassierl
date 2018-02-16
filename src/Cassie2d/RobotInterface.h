@@ -10,6 +10,8 @@
 
 #include <string>
 
+// Change this to where your files are. Use ABSOLUTE path!
+static const std::string xml_model_filename = "/home/phi/work/cassierl/model/cassie2d_stiff.xml";
 
 struct ControllerTorque {
   double torques[6];
@@ -57,7 +59,6 @@ struct StateOperationalSpace {
 
 #define DOF 3 // 2D vs 3D
 
-static const std::string xml_model_filename = "/home/tapgar/workspace/RLProject/model/cassie2d_stiff.xml";
 static const double mu = 0.5;
 
 static void StateOperationalSpaceToArray(StateOperationalSpace* state, double* pos, double* vel)
