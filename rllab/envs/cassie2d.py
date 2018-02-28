@@ -43,6 +43,9 @@ lib.Display.restype = None
 control_mode = {"torque" : 0, "jacobian" : 1, "operational" : 2}
 
 class Cassie2dEnv(Env):
+    """
+    Modifies the step() method to make Cassie learn what you want.
+    """
 
     def __init__(self):
         self.qstate = StateGeneral()
@@ -138,9 +141,9 @@ class Cassie2dEnv(Env):
         if self.action_jac.right_force[1] < 0.0:
             self.action_jac.right_force[1] = 0.0
 
-#        for i in range(3):
-#            self.action_jac.left_force[i] = -1.0*self.action_jac.left_force[i]
-#            self.action_jac.right_force[i] = -1.0*self.action_jac.right_force[i]
+        # for i in range(3):
+        #    self.action_jac.left_force[i] = -1.0*self.action_jac.left_force[i]
+        #    self.action_jac.right_force[i] = -1.0*self.action_jac.right_force[i]
 
         lib.StepJacobian(self.cassie, ctypes.byref(self.action_jac))
 
