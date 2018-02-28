@@ -159,21 +159,3 @@ class Cassie2dEnv(Env):
         high = np.full((6,), 1e2) #accel of 100 may be reasonable
         low = -high
         return Box(low, high)
-
-def main():
-    env = Cassie2dEnv()
-    env.reset()
-
-    freq = 0.5
-    w = freq*3.1415
-    t = 0.0
-
-    while (True):
-        env.standing_controller_jacobian(0.7 + 0.25*np.sin(w*t), 0.25*np.cos(w*t))
-        t = t + 0.0005
-
-
-
-
-if __name__ == "__main__":
-    main()
