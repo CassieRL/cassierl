@@ -62,7 +62,6 @@ class Cassie2dEnv(Env):
         lib.Reset(self.cassie, self.qstate)
 
     def step(self, action):
-
         #convert action
         self.action_osc = self.cvrt.array_to_operational_action(action)
 
@@ -83,8 +82,10 @@ class Cassie2dEnv(Env):
 
         return Step(observation=sp, reward=r, done=done)
 
-    def standing_controller_osc(self, zpos_target, zvel_target):
+    def render(self):
+        lib.Render(self.cassie)
 
+    def standing_controller_osc(self, zpos_target, zvel_target):
         #get operational state
         lib.GetOperationalSpaceState(self.cassie, ctypes.byref(self.xstate))
 
@@ -114,7 +115,6 @@ class Cassie2dEnv(Env):
         lib.StepOsc(self.cassie, ctypes.byref(self.action_osc))
 
     def standing_controller_jacobian(self, zpos_target, zvel_target):
-
         #get operational state
         lib.GetOperationalSpaceState(self.cassie, ctypes.byref(self.xstate))
 
@@ -152,7 +152,6 @@ class Cassie2dEnv(Env):
         high = np.full((18,), 1e20)
         low = -high
         return Box(low, high)
-
 
     @cached_property
     def action_space(self):
