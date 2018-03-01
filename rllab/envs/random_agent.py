@@ -3,12 +3,7 @@ Adapted from OpenAI Gym's random_agent.py.
 This thing will never work unless you're lucky.
 """
 
-import argparse
-import sys
 from cassie2d import Cassie2dEnv
-
-import gym
-from gym import wrappers, logger
 
 
 def main():
@@ -22,10 +17,11 @@ def main():
 
     for episode in range(episode_count):
         ob = env.reset()
+        print("Current episode: %d" % episode)
+
         while True:
             action = agent.act(ob, reward, done)
-            ob, reward, done, info = env.step(action)
-            print(episode)
+            ob, reward, done, _ = env.step(action)
             env.render()
             if done:
                 break
