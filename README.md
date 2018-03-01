@@ -53,6 +53,6 @@ From the root directory `cassierl`, execute the following commands:
 This will take a while to compile. After it's done, from the current `src` directory,
 
     cd ../rllab/envs
-    python3 cassie2d.py
+    python3 squatting.py
 
 This should open a new MuJoCo window where Cassie squats up and down. You're done!
