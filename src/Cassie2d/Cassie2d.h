@@ -21,6 +21,7 @@ public:
   virtual ~Cassie2d();
 
   void Reset(StateGeneral* state);
+  void Render();
   void StepOsc(ControllerOsc* action);
   void StepJacobian(ControllerForce* action);
   void Step(ControllerTorque* action);

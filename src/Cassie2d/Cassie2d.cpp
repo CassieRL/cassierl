@@ -25,7 +25,7 @@ void StepJacobian(Cassie2d* cassie, ControllerForce* action) { cassie->StepJacob
 void GetGeneralState(Cassie2d* cassie, StateGeneral* state) { cassie->GetGeneralState(state); }
 void GetOperationalSpaceState(Cassie2d* cassie, StateOperationalSpace* state) { cassie->GetOperationalSpaceState(state); }
 void Display(Cassie2d* cassie, bool display) { cassie->display_ = display; }
-
+void Render(Cassie2d* cassie) { cassie->Render(); }
 }
 
 Cassie2d::Cassie2d() {
@@ -80,6 +80,8 @@ void Cassie2d::Reset(StateGeneral* state)
   StateGeneralToArray(state, mj_data_->qpos, mj_data_->qvel);
   mj_forward(mj_model_, mj_data_);
 }
+
+void Cassie2d::Render() { if (display_) vis_->Draw(mj_data_); }
 
 void Cassie2d::Step(ControllerTorque* action)
 {
@@ -144,9 +146,7 @@ void Cassie2d::StepJacobian(ControllerForce* action)
 
   mj_step(mj_model_, mj_data_);
 
-  if (display_)
-    vis_->Draw(mj_data_);
-
+  Render();
 }
 
 void Cassie2d::StepOsc(ControllerOsc* action)
@@ -178,9 +178,7 @@ void Cassie2d::StepOsc(ControllerOsc* action)
 
   mj_step(mj_model_, mj_data_);
 
-  if (display_)
-    vis_->Draw(mj_data_);
-
+  Render();
 }
 
 
