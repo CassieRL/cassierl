@@ -76,9 +76,11 @@ class Cassie2dEnv(Env):
         sp = self.cvrt.operational_state_to_array(self.xstate)
 
         #reward (do something here)
-        r=0.0
+        r = (0.9 - self.xstate.body_x[1])**2
         #done (do something here)
-        done=False
+        done = False
+        if (self.xstate.body_x[1] < 0.2):
+            done = True
 
         return Step(observation=sp, reward=r, done=done)
 
@@ -155,6 +157,6 @@ class Cassie2dEnv(Env):
 
     @cached_property
     def action_space(self):
-        high = np.full((6,), 1e2) #accel of 100 may be reasonable
+        high = np.full((7,), 1e2) #accel of 100 may be reasonable
         low = -high
         return Box(low, high)
