@@ -18,7 +18,7 @@
   </default>
 
   <asset>
-    <hfield name='terrain' size='10 10 1 0.001' file='../terrains/frequency4.8_octaves15_seed3253278.png'/>
+    <hfield name='terrain' size='10 10 1 0.001' file='../terrains/f4.8o15_3253278.png'/>
     <texture type='skybox' builtin='gradient' width='128' height='128' rgb1='0.4 0.6 0.8' rgb2='0 0 0'/>
     <texture name='plane' type='2d' builtin='checker' rgb1='0.2 0.2 0.2' rgb2='0.3 0.3 0.3' width='512' height='512'/>
     <material name='plane' reflectance='0.0' texture='plane' texrepeat='1 1' texuniform='true'/>
