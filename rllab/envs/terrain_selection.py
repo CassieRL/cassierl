@@ -72,7 +72,7 @@ def add_hfield_xml(attributes, infile, outfile):
 
 
 if __name__ == '__main__':
-    assert len(sys.argv) == 2, 'Usage: terrain_selection.py <image.png>'
+    assert len(sys.argv) == 2, 'Usage: terrain_selection.py <<image.png> or random>'
     try:
         main(sys.argv[1:])
     finally:
