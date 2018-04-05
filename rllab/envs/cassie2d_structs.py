@@ -91,3 +91,19 @@ class InterfaceStructConverter():
             a.right_xdd[i] = action[4+i]
         a.pitch_add = action[6]
         return a
+
+    # To make feet position wrt body, and not in global frame
+    def operational_state_array_to_pos_invariant_array(self, state_array):
+        s = np.zeros((17,), dtype=np.double)
+        for i in range(17):
+            s[i] = state_array[i+1]
+        s[5] -= state_array[0]              # substracting x-position to make position invariant, left foot (I guess)
+        s[11] -= state_array[0]             # right foot (I guess)
+        return s
+
+    # add conversion for torque
+    def array_to_torque_action(self, action):
+        a = ControllerTorque()
+        for i in range(6):
+            a.torques[i] = action[i]
+        return a

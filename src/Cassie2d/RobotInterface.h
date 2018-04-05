@@ -11,7 +11,7 @@
 #include <string>
 
 // Change this to where your files are. Use ABSOLUTE path!
-static const std::string xml_model_filename = "/home/phi/work/cassierl/model/cassie2d_stiff.xml";
+static const std::string xml_model_filename = "/home/yathartha/PycharmProjects/RL/cassierl/model/cassie2d_stiff.xml";
 
 struct ControllerTorque {
   double torques[6];

@@ -1,7 +1,6 @@
 """
 Makes Cassie squat up and down. This is purely physics. There is no RL involved.
 """
-
 import cassie2d
 import numpy as np
 

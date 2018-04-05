@@ -8,8 +8,8 @@
 #include "Cassie2d.h"
 
 // change this to where your files are. Use ABSOLUTE path!
-const char* MUJOCO_LICENSE_PATH = "/home/phi/work/cassierl/model/mjkey.txt";
-const char* XML_FILE_PATH = "/home/phi/work/cassierl/model/cassie2d_stiff.xml";
+const char* MUJOCO_LICENSE_PATH = "/home/yathartha/PycharmProjects/RL/ThirdParty/mjpro150/mjkey.txt";
+const char* XML_FILE_PATH = "/home/yathartha/PycharmProjects/RL/cassierl/model/cassie2d_stiff.xml";
 
 /*
  * external functions used by python interface
@@ -69,6 +69,8 @@ Cassie2d::Cassie2d() {
 
   vis_ = new CassieVis(mj_model_, false, "cassie");
 
+  display_ = false;
+
 }
 
 Cassie2d::~Cassie2d() {
@@ -85,8 +87,12 @@ void Cassie2d::Render() { if (display_) vis_->Draw(mj_data_); }
 
 void Cassie2d::Step(ControllerTorque* action)
 {
+  dyn_model_.setState(mj_data_->qpos, mj_data_->qvel);
+  dyn_state_.UpdateDynamicState(&dyn_model_);
+
   mju_copy(mj_data_->ctrl, action->torques, nU);
   mj_step(mj_model_, mj_data_);
+  Render();
 }
 
 void Cassie2d::StepJacobian(ControllerForce* action)
