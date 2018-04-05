@@ -56,3 +56,9 @@ This will take a while to compile. After it's done, from the current `src` direc
     python3 squatting.py
 
 This should open a new MuJoCo window where Cassie squats up and down. You're done!
+
+## Some useful documents to understand the reinforcement learning setup (not needed for setup)
+
+The Docs folder contains a writeup, and presentation pdf file. For the presentation with videos, [this link](https://docs.google.com/presentation/d/1wqTQ8Lswg40DpZgtPWiQ-hja9CdKYFQIVGe_ChCKp2A/edit#slide=id.p3)
+
+Please note: there might be some mistakes or changes that have been made since the report/presentation was made.
