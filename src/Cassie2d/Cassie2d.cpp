@@ -8,8 +8,8 @@
 #include "Cassie2d.h"
 
 // change this to where your files are. Use ABSOLUTE path!
-const char* MUJOCO_LICENSE_PATH = "/home/yathartha/PycharmProjects/RL/ThirdParty/mjpro150/mjkey.txt";
-const char* XML_FILE_PATH = "/home/yathartha/PycharmProjects/RL/cassierl/model/cassie2d_stiff.xml";
+const char* MUJOCO_LICENSE_PATH = "/absolute/path/to/your/mjkey.txt";
+const char* XML_FILE_PATH = "/absolute/path/to/your/cassie2d_stiff.xml";
 
 /*
  * external functions used by python interface

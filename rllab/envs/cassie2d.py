@@ -46,7 +46,7 @@ lib.Display.restype = None
 # Control Modes:
 #   1 : OSC
 #   2 : torque
-control_mode = 2
+control_mode = 1
 assert control_mode == 1 or control_mode == 2, "Invalid Control Mode"
 
 print("Control mode = " + str(control_mode))
