@@ -42,16 +42,14 @@ def run_task(*_):
     )
     algo.train()
 
-run_task()
-
-# run_experiment_lite(
-#     run_task,
-#     # Number of parallel workers for sampling
-#     n_parallel=1,
-#     # Only keep the snapshot parameters for the last iteration
-#     snapshot_mode="last",
-#     # Specifies the seed for the experiment. If this is not provided, a random seed
-#     # will be used
-#     seed=1,
-#     plot=False,
-# )
+run_experiment_lite(
+    run_task,
+    # Number of parallel workers for sampling
+    n_parallel=1,
+    # Only keep the snapshot parameters for the last iteration
+    snapshot_mode="last",
+    # Specifies the seed for the experiment. If this is not provided, a random seed
+    # will be used
+    seed=1,
+    plot=False,
+)
