@@ -55,7 +55,7 @@
     <light directional='true' pos='0 0 3' dir='0 0 -1' diffuse='0.2 0.2 0.2' specular='0 0 0'/>
     <camera name='trackcom' pos='0 -3 2' zaxis='0 -1 0.5' mode='trackcom'/>
 
-    <body name='pelvis' pos='0 0 0.5'>
+    <body name='pelvis' pos='0 0 1'>
       <inertial pos='0.0507 0 0.0284' mass='10.33' fullinertia='0.094158 0.084066 0.11277 0.000169 0.015026 0.000516'/>
       <joint name='body_x' type='slide' axis='1 0 0' pos='0 0 0' limited='false'/>
       <joint name='body_z' type='slide' axis='0 0 1' pos='0 0 0' limited='false' ref='0.0'/>
