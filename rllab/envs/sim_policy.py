@@ -1,3 +1,8 @@
+"""
+This program runs the trained policy on the robot by loading the parameter file
+param.pkl.
+"""
+
 import argparse
 import cassie2d as cassie
 from rllab.envs.normalized_env import normalize
