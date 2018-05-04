@@ -6,10 +6,7 @@
  */
 
 #include "Cassie2d.h"
-
-// change this to where your files are. Use ABSOLUTE path!
-const char* MUJOCO_LICENSE_PATH = "/absolute/path/to/your/mjkey.txt";
-const char* XML_FILE_PATH = "/absolute/path/to/your/cassie2d_stiff.xml";
+#include "FilePath.h"
 
 /*
  * external functions used by python interface
@@ -42,7 +39,7 @@ Cassie2d::Cassie2d() {
   osc_ = new OSC_RBDL(targetIds);
   osc_->AddQDDIdx(2);
 
-  dyn_model_.LoadModel(xml_model_filename);
+  dyn_model_.LoadModel(XML_FILE_PATH);
 
   //active mujoco and create data
   mj_activate(MUJOCO_LICENSE_PATH);

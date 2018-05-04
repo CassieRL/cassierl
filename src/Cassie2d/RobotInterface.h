@@ -9,9 +9,7 @@
 #define ROBOTINTERFACE_H_
 
 #include <string>
-
-// Change this to where your files are. Use ABSOLUTE path!
-static const std::string xml_model_filename = "/absolute/path/to/your/cassie2d_stiff.xml";
+#include "FilePath.h"
 
 struct ControllerTorque {
   double torques[6];
