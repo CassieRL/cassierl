@@ -8,17 +8,11 @@ In order to compile the files in `src`, you need to clone [this repository](http
 
 ## How to Set Paths to Your Own Files
 
-- In `src/Cassie2d/Cassie2d.cpp`
+In `src/Cassie2d/FilePath.h`,
 
-Change the value of `const char* MUJOCO_LICENSE_PATH` to where your `mjkey.txt` is.
+- Change the value of `MUJOCO_LICENSE_PATH` to where your `mjkey.txt` is.
 
-Change the value of `const char* XML_FILE_PATH` to where your `cassie2d_stiff.xml` is.
-
-These two constants are located near the beginning of the file.
-
-- In `src/Cassie2d/RobotInterface.h`:
-
-Change the value of `static const std::string xml_model_filename` to where your `cassie2d_stiff.xml` is. Its value should match the value of the XML file path in `Cassie2d.cpp` you changed earlier.
+- Change the value of `XML_FILE_PATH` to where your `cassie2d_stiff.xml` is.
 
 ## How to Fix Import Errors when `python3 cassie2d.py`
 
