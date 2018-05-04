@@ -26,8 +26,8 @@ def run_task(*_):
             # The neural network policy should have two hidden layers, each with 32 hidden units.
             hidden_sizes=(32, 32),
             init_std=1.0,
-            #adaptive_std=True,
-    )
+            # adaptive_std=True,
+        )
 
     baseline = LinearFeatureBaseline(env_spec=env.spec)
 
@@ -36,7 +36,7 @@ def run_task(*_):
         policy=policy,
         baseline=baseline,
         batch_size=10000,
-        max_path_length=1000, # dt = (1/2000)*n, where n is Step(n)
+        max_path_length=1000,  # dt = (1/2000)*n, where n is Step(n)
         n_itr=2000,
         discount=0.99,
         step_size=0.005,      # default was 0.01
