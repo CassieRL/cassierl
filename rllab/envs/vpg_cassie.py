@@ -42,6 +42,7 @@ def run_task(*_):
         step_size=0.005,      # default was 0.01
         # Uncomment both lines (this and the plot parameter below) to enable plotting
         plot=False,
+        use_gpu=True
     )
     algo.train()
 
