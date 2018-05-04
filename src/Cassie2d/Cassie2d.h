@@ -25,6 +25,7 @@ public:
   void StepOsc(ControllerOsc* action);
   void StepJacobian(ControllerForce* action);
   void Step(ControllerTorque* action);
+  void StepPd(ControllerPd* action);
   void GetGeneralState(StateGeneral* state);
   void GetOperationalSpaceState(StateOperationalSpace* state);
 

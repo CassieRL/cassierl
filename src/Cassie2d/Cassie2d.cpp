@@ -19,6 +19,7 @@ void Reset(Cassie2d* cassie, StateGeneral* state) { cassie->Reset(state); }
 void StepOsc(Cassie2d* cassie, ControllerOsc* action) { cassie->StepOsc(action); }
 void StepTorque(Cassie2d* cassie, ControllerTorque* action) { cassie->Step(action); }
 void StepJacobian(Cassie2d* cassie, ControllerForce* action) { cassie->StepJacobian(action); }
+void StepPd(Cassie2d* cassie, ControllerPd* action) { cassie->StepPd(action); }
 void GetGeneralState(Cassie2d* cassie, StateGeneral* state) { cassie->GetGeneralState(state); }
 void GetOperationalSpaceState(Cassie2d* cassie, StateOperationalSpace* state) { cassie->GetOperationalSpaceState(state); }
 void Display(Cassie2d* cassie, bool display) { cassie->display_ = display; }
@@ -88,6 +89,16 @@ void Cassie2d::Step(ControllerTorque* action)
   dyn_state_.UpdateDynamicState(&dyn_model_);
 
   mju_copy(mj_data_->ctrl, action->torques, nU);
+  mj_step(mj_model_, mj_data_);
+  Render();
+}
+
+void Cassie2d::StepPd(ControllerPd* action)
+{
+  dyn_model_.setState(mj_data_->qpos, mj_data_->qvel);
+  dyn_state_.UpdateDynamicState(&dyn_model_);
+
+  mju_copy(mj_data_->ctrl, action->angles, nU);
   mj_step(mj_model_, mj_data_);
   Render();
 }

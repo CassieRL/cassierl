@@ -4,6 +4,7 @@ import numpy as np
 from cassie2d_structs import ControllerOsc
 from cassie2d_structs import ControllerForce
 from cassie2d_structs import ControllerTorque
+from cassie2d_structs import ControllerPd
 from cassie2d_structs import StateGeneral
 from cassie2d_structs import StateOperationalSpace
 from cassie2d_structs import InterfaceStructConverter as convert
@@ -34,6 +35,9 @@ lib.StepJacobian.restype = None
 lib.StepTorque.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerTorque)]
 lib.StepTorque.restype = None
 
+lib.StepPd.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerPd)]
+lib.StepPd.restype = None
+
 lib.GetGeneralState.argtypes = [ctypes.c_void_p, ctypes.POINTER(StateGeneral)]
 lib.GetGeneralState.restype = None
 
@@ -43,13 +47,10 @@ lib.GetOperationalSpaceState.restype = None
 lib.Display.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 lib.Display.restype = None
 
-# Control Modes:
-#   1 : OSC
-#   2 : torque
-control_mode = 1
-assert control_mode == 1 or control_mode == 2, "Invalid Control Mode"
+control_mode = 'OSC'
+assert control_mode == 'OSC' or control_mode == 'Torque' or control_mode == 'PD', 'Invalid Control Mode'
 
-print("Control mode = " + str(control_mode))
+print('Control mode = ' + control_mode)
 
 
 class Cassie2dEnv(Env):
@@ -64,6 +65,7 @@ class Cassie2dEnv(Env):
         self.action_osc = ControllerOsc()
         self.action_jac = ControllerForce()
         self.action_tor = ControllerTorque()
+        self.action_pd = ControllerPd()
 
         self.cassie = lib.Cassie2dInit()
         self.cvrt = convert()
@@ -82,46 +84,55 @@ class Cassie2dEnv(Env):
         return self.cvrt.operational_state_array_to_pos_invariant_array(s)
 
     def step(self, action, n=10):
+        """
+        Args:
+            n   When you tell RL you did 1 step, you actually did n steps.
+                This acts like a frequency parameter to run your policy.
+        """
         # convert action
-        if control_mode == 1:
+        if control_mode == 'OSC':
             self.action_osc = self.cvrt.array_to_operational_action(action)
-        elif control_mode == 2:
+        elif control_mode == 'Torque':
             self.action_tor = self.cvrt.array_to_torque_action(action)
+        elif control_mode == 'PD':
+            self.action_pd = self.cvrt.array_to_pd_action(action)
 
-        #current state
+        # current state
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         s = self.cvrt.operational_state_to_array(self.xstate)
 
-        # Run the simulation forward by sending "action"
+        # Run the simulation forward by sending 'action'
         for i in range(n):
-            if control_mode == 1:
+            if control_mode == 'OSC':
                 lib.StepOsc(self.cassie, self.action_osc)
-            elif control_mode == 2:
+            elif control_mode == 'Torque':
                 lib.StepTorque(self.cassie, self.action_tor)
+            elif control_mode == 'PD':
+                lib.StepPd(self.cassie, self.action_pd)
 
-        #next state
+        # next state
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
 
-        #reward
+        # reward
         r = 0.0
-        r -= 5 * (0.9 - self.xstate.body_x[1]) ** 2  # penalty for body height error squared
-        # r -= 5*(((sp[5] + sp[11]) / 2.0) ** 2)  # penalty for feet not being over COM
-        r -= 5 * sp[5] ** 2
-        r -= 5 * sp[11] ** 2
+        r -= 2 * (0.9 - self.xstate.body_x[1])**2  # penalty for body height error squared
+        r -= 2 * ((sp[5] + sp[11]) / 2.0)**2  # penalty for feet not being over COM
+        # r -= 5 * sp[5]**2
+        # r -= 5 * sp[11]**2
         r += 1  # reward for staying alive
-        r -= 0.01 * np.sum(action ** 2)  # to reduce jerkiness, cost on accelerations
+        r -= 0.001 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
 
 
         # print(self.xstate.body_x[0])
 
-        #done
+        # done
         done = False
         if (self.xstate.body_x[1] < 0.5):
             done = True
             # r -= 500
-            # print("Terimanation cost = 500")
+            # print('Terimanation cost = 500')
 
         return Step(observation=sp, reward=r, done=done)
 
@@ -137,7 +148,7 @@ class Cassie2dEnv(Env):
     #     self.action_tor = self.cvrt.array_to_torque_action(action)
     #
     # def action_space_osc(self, action, speedup=10):
-    #     # this will take "action" from the RL, and convert them into "action" that can be sent to the OSC
+    #     # this will take 'action' from the RL, and convert them into 'action' that can be sent to the OSC
     #     self.action_osc = self.cvrt.array_to_operational_action(action)
     #
     #     # current state
@@ -234,17 +245,31 @@ class Cassie2dEnv(Env):
 
     @cached_property
     def action_space(self):
-        if control_mode == 1:
+        """
+        The order of these numbers follows the order of the children in the
+        <actuator> tag defined in the XML file.
+
+        For example, in cassie2d_stiff.xml, the order of the actuators are
+            1. left_hip
+            2. left_knee_spring
+            3. left_toe
+            4. right_hip
+            5. right_knee_spring
+            6. right_toe
+        """
+        if control_mode == 'OSC':
             high = np.full((7,), 2e1) #accel of 100 may be reasonable
             low = np.array([-2e1, -2e1, -2e1, 0, -2e1, 0, -2e1])
-        elif control_mode == 2:
+        elif control_mode == 'Torque':
             high = np.array([12.0, 12.0, 0.9, 12.0, 12.0, 0.9])
             low = -1.0*high
+        elif control_mode == 'PD':
+            high = np.array([np.radians(80.0), np.radians(-37.0), np.radians(-30.0),
+                             np.radians(80.0), np.radians(-37.0), np.radians(-30.0)])
+            low = np.array([np.radians(-50.0), np.radians(-164.0), np.radians(-140.0),
+                            np.radians(-50.0), np.radians(-164.0), np.radians(-140.0)])
         return Box(low, high)
 
     def terminate(self):
-        print("in here")
+        print('Process terminated.')
         del self.cassie
-
-    def release(self): # I dont need this. Please delete.
-        pass

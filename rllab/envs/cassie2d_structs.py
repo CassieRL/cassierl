@@ -7,17 +7,23 @@ class ControllerTorque(ct.Structure):
 
 
 class ControllerForce(ct.Structure):
-    """OSC = Operation Space Control"""
-
     _fields_ = [('left_force', ct.c_double*3),
                 ('right_force', ct.c_double*3)]
 
 
 class ControllerOsc(ct.Structure):
+    """OSC = Operational Space Control"""
+
     _fields_ = [('body_xdd', ct.c_double*2),
                 ('left_xdd', ct.c_double*2),
                 ('right_xdd', ct.c_double*2),
                 ('pitch_add', ct.c_double)]
+
+
+class ControllerPd(ct.Structure):
+    """PD = Target Joint Angles"""
+
+    _fields_= [('angles', ct.c_double * 6)]
 
 
 class StateGeneral(ct.Structure):
@@ -59,6 +65,15 @@ class InterfaceStructConverter():
             s[i+15] = state.right_xd[i]
         return s
 
+    # To make feet position wrt body, and not in global frame
+    def operational_state_array_to_pos_invariant_array(self, state_array):
+        s = np.zeros((17,), dtype=np.double)
+        for i in range(17):
+            s[i] = state_array[i+1]
+        s[5] -= state_array[0]     # substracting x-position to make position invariant, left foot (I guess)
+        s[11] -= state_array[0]    # right foot (I guess)
+        return s
+
     def general_state_to_array(self, state):
         s = np.zeros((26,), dtype=np.double)
         for i in range(3):
@@ -92,18 +107,16 @@ class InterfaceStructConverter():
         a.pitch_add = action[6]
         return a
 
-    # To make feet position wrt body, and not in global frame
-    def operational_state_array_to_pos_invariant_array(self, state_array):
-        s = np.zeros((17,), dtype=np.double)
-        for i in range(17):
-            s[i] = state_array[i+1]
-        s[5] -= state_array[0]              # substracting x-position to make position invariant, left foot (I guess)
-        s[11] -= state_array[0]             # right foot (I guess)
-        return s
-
     # add conversion for torque
     def array_to_torque_action(self, action):
         a = ControllerTorque()
         for i in range(6):
             a.torques[i] = action[i]
+        return a
+
+    # add conversion for target join angles
+    def array_to_pd_action(self, action):
+        a = ControllerPd()
+        for i in range(6):
+            a.angles[i] = action[i]
         return a

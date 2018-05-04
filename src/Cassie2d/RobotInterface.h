@@ -27,6 +27,10 @@ struct ControllerOsc {
   double pitch_add;
 };
 
+struct ControllerPd {
+  double angles[6];
+};
+
 struct StateGeneral {
   double base_pos[3];
   double base_vel[3];
