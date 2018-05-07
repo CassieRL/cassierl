@@ -98,7 +98,20 @@ void Cassie2d::StepPd(ControllerPd* action)
   dyn_model_.setState(mj_data_->qpos, mj_data_->qvel);
   dyn_state_.UpdateDynamicState(&dyn_model_);
 
-  mju_copy(mj_data_->ctrl, action->angles, nU);
+  // proportional gain and derivative gain
+  double kp = 100.0, kd = 20.0;
+  // corresponding 0-index joints of the actuators. Order matters
+  const int joints[nU] = { 3, 4, 6, 8, 9, 11 };
+  // contains torques converted from target angles
+  mjtNum u[nU];
+
+  // PD controller: torque = kp(target_angle - joint_angle) + kd(0 - joint_velocity)
+  for (int i = 0; i < nU; i++) {
+    u[i] = kp * (action->angles[i] - mj_data_->qpos[joints[i]])
+           + kd * (0.0 - mj_data_->qvel[joints[i]]);
+  }
+
+  mju_copy(mj_data_->ctrl, u, nU);
   mj_step(mj_model_, mj_data_);
   Render();
 }
