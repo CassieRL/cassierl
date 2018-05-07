@@ -73,7 +73,13 @@ class Cassie2dEnv(Env):
         lib.Display(self.cassie, True)
 
     def reset(self):
-        qinit = np.array([0.0, 0.939, 0.0, 0.0, 0.0, 0.0, 0.68111815, -1.40730357, 1.62972042, -1.77611107, -0.61968407, 0.0, 0.0, 0.0, 0.0, 0.0, 0.68111815, -1.40730357, 1.62972042, -1.77611107, -0.61968407, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=ctypes.c_double)
+        qinit = np.array([0.0, 0.939, 0.0,
+                          0.0, 0.0, 0.0,
+                          0.68111815, -1.40730357, 1.62972042, -1.77611107, -0.61968407,
+                          0.0, 0.0, 0.0, 0.0, 0.0,
+                          0.68111815, -1.40730357, 1.62972042, -1.77611107, -0.61968407,
+                          0.0, 0.0, 0.0, 0.0, 0.0
+                         ], dtype=ctypes.c_double)
         self.qstate = self.cvrt.array_to_general_state(qinit)
         lib.Reset(self.cassie, self.qstate)
 
@@ -117,15 +123,12 @@ class Cassie2dEnv(Env):
 
         # reward
         r = 0.0
-        r -= 2 * (0.9 - self.xstate.body_x[1])**2  # penalty for body height error squared
-        r -= 2 * ((sp[5] + sp[11]) / 2.0)**2  # penalty for feet not being over COM
+        r -= 1 * (0.9 - self.xstate.body_x[1])**2  # penalty for body height error squared
+        r -= 1 * ((sp[5] + sp[11]) / 2.0)**2  # penalty for feet not being over COM
         # r -= 5 * sp[5]**2
         # r -= 5 * sp[11]**2
         r += 1  # reward for staying alive
-        r -= 0.001 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
-
-
-        # print(self.xstate.body_x[0])
+        # r -= 0.001 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
 
         # done
         done = False
