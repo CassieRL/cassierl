@@ -56,6 +56,5 @@ run_experiment_lite(
     # Specifies the seed for the experiment. If this is not provided, a random seed
     # will be used
     seed=1,
-    plot=True,
-    use_gpu=True
+    plot=True
 )

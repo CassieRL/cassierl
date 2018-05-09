@@ -47,7 +47,7 @@ lib.GetOperationalSpaceState.restype = None
 lib.Display.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 lib.Display.restype = None
 
-control_mode = 'Torque'
+control_mode = 'OSC'
 assert control_mode == 'OSC' or control_mode == 'Torque' or control_mode == 'PD', 'Invalid Control Mode'
 
 print('Control mode = ' + control_mode)
@@ -98,9 +98,6 @@ class Cassie2dEnv(Env):
             self.action_pd = self.cvrt.array_to_pd_action(action)
 
         # current state
-        lib.GetGeneralState(self.cassie, self.qstate)
-        posbefore = self.cvrt.general_state_to_array(self.qstate)[0]
-
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         s = self.cvrt.operational_state_to_array(self.xstate)
 
@@ -114,27 +111,25 @@ class Cassie2dEnv(Env):
                 lib.StepPd(self.cassie, self.action_pd)
 
         # next state
-        lib.GetGeneralState(self.cassie, self.qstate)
-        posafter = self.cvrt.general_state_to_array(self.qstate)[0]
-
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
 
-        print(posafter - posbefore)
-
         # reward
         r = 0.0
-        r += 10 * (posafter - posbefore)
-        r += 0.5  # reward for staying alive
-        r -= 1e-3 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
+        r -= 2 * (0.9 - self.xstate.body_x[1])**2  # penalty for body height error squared
+        r -= 2 * ((sp[5] + sp[11]) / 2.0)**2  # penalty for feet not being over COM
+        # r -= 5 * sp[5]**2
+        # r -= 5 * sp[11]**2
+        r += 1  # reward for staying alive
+        r -= 0.001 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
 
 
         # print(self.xstate.body_x[0])
 
         # done
         done = False
-        if (self.xstate.body_x[1] < 0.7):
+        if (self.xstate.body_x[1] < 0.5):
             done = True
             # r -= 500
             # print('Terimanation cost = 500')
