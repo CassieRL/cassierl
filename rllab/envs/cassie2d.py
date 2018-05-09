@@ -121,7 +121,7 @@ class Cassie2dEnv(Env):
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
 
-        print(posafter - posbefore)
+        #print(posafter - posbefore)
 
         # reward
         r = 0.0
