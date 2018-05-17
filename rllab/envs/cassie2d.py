@@ -14,7 +14,7 @@ from rllab.spaces import Box
 from cached_property import cached_property
 from rllab.misc.overrides import overrides
 from rllab.misc import logger
-
+import math
 import time
 
 lib = cdll.LoadLibrary('../../bin/libcassie2d.so')
@@ -47,7 +47,7 @@ lib.GetOperationalSpaceState.restype = None
 lib.Display.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 lib.Display.restype = None
 
-control_mode = 'Torque'
+control_mode = 'PD'
 assert control_mode == 'OSC' or control_mode == 'Torque' or control_mode == 'PD', 'Invalid Control Mode'
 
 print('Control mode = ' + control_mode)
@@ -104,9 +104,6 @@ class Cassie2dEnv(Env):
             self.action_pd = self.cvrt.array_to_pd_action(action)
 
         # current state
-        lib.GetGeneralState(self.cassie, self.qstate)
-        posbefore = self.cvrt.general_state_to_array(self.qstate)[0]
-
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         s = self.cvrt.operational_state_to_array(self.xstate)
 
@@ -121,22 +118,42 @@ class Cassie2dEnv(Env):
 
         # next state
         lib.GetGeneralState(self.cassie, self.qstate)
-        posafter = self.cvrt.general_state_to_array(self.qstate)[0]
-
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
 
-        #print(posafter - posbefore)
 
-        # reward
-        r = 0.0
-        r += 10 * (posafter - posbefore)
-        r += 0.5  # reward for staying alive
-        r -= 1e-3 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
+        #Append space for trajectory on observation then use GetGeneralState to fill values
+        sp = np.append(sp, np.zeros((9,), dtype=np.double), axis = 0)
 
+        """
+        -----Reward-----
+        """
 
-        # print(self.xstate.body_x[0])
+        references = 0
+
+        #Weights
+        w_joint = 0.5
+        w_pelvis_position = 0.3
+        w_pelvis_orientation = 0.1
+
+        #Joint positions
+        j = self.qstate.left_pos[0] + self.qstate.left_pos[1] + self.qstate.left_pos[3]
+        j += self.qstate.right_pos[0] + self.qstate.right_pos[1] + self.qstate.right_pos[3]
+        j -= references #reference positions for right and left hip, knee, and toe
+        j = math.exp(-(j ** 2))
+
+        #Pelvis position (times 0.3 for position and 0.1 for orientation in paper)
+        p = self.xstate.body_x[0] + self.xstate.body_x[1]
+        p -= references #reference positions for body x and z
+        p = math.exp(-(p ** 2))
+
+        #Pelvis orientation
+        o = self.xstate.body_x[2]
+        o -= references #reference position for phi
+        o = math.exp(-(o ** 2))
+
+        r = w_joint * j + w_pelvis_position * p + w_pelvis_orientation * o
 
         # done
         done = False
@@ -250,7 +267,7 @@ class Cassie2dEnv(Env):
 
     @cached_property
     def observation_space(self):
-        high = np.full((17,), 1e20)
+        high = np.full((26,), 1e20)
         low = -high
         return Box(low, high)
 
