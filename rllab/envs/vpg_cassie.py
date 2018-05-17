@@ -23,8 +23,8 @@ def run_task(*_):
         # use Gaussian maximum likelihood policy
         policy = GaussianMLPPolicy(
             env_spec=env.spec,
-            # The neural network policy should have two hidden layers, each with 32 hidden units.
-            hidden_sizes=(32, 32),
+            # The neural network policy should have two hidden layers, each with 128 hidden units.
+            hidden_sizes=(128, 128),
             init_std=1.0,
             # adaptive_std=True,
         )
