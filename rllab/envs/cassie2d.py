@@ -1,21 +1,22 @@
 import ctypes
-from ctypes import cdll
+import math
 import numpy as np
-from cassie2d_structs import ControllerOsc
+import time
+
+from cached_property import cached_property
 from cassie2d_structs import ControllerForce
-from cassie2d_structs import ControllerTorque
+from cassie2d_structs import ControllerOsc
 from cassie2d_structs import ControllerPd
+from cassie2d_structs import ControllerTorque
+from cassie2d_structs import InterfaceStructConverter as convert
 from cassie2d_structs import StateGeneral
 from cassie2d_structs import StateOperationalSpace
-from cassie2d_structs import InterfaceStructConverter as convert
+from ctypes import cdll
 from rllab.envs.base import Env
 from rllab.envs.base import Step
-from rllab.spaces import Box
-from cached_property import cached_property
-from rllab.misc.overrides import overrides
 from rllab.misc import logger
-
-import time
+from rllab.misc.overrides import overrides
+from rllab.spaces import Box
 
 lib = cdll.LoadLibrary('../../bin/libcassie2d.so')
 c_double_p = ctypes.POINTER(ctypes.c_double)
@@ -47,7 +48,7 @@ lib.GetOperationalSpaceState.restype = None
 lib.Display.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 lib.Display.restype = None
 
-control_mode = 'Torque'
+control_mode = 'PD'
 assert control_mode == 'OSC' or control_mode == 'Torque' or control_mode == 'PD', 'Invalid Control Mode'
 
 print('Control mode = ' + control_mode)
@@ -104,13 +105,10 @@ class Cassie2dEnv(Env):
             self.action_pd = self.cvrt.array_to_pd_action(action)
 
         # current state
-        lib.GetGeneralState(self.cassie, self.qstate)
-        posbefore = self.cvrt.general_state_to_array(self.qstate)[0]
-
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         s = self.cvrt.operational_state_to_array(self.xstate)
 
-        # Run the simulation forward by sending 'action'
+        # run the simulation forward by sending 'action'
         for i in range(n):
             if control_mode == 'OSC':
                 lib.StepOsc(self.cassie, self.action_osc)
@@ -121,22 +119,57 @@ class Cassie2dEnv(Env):
 
         # next state
         lib.GetGeneralState(self.cassie, self.qstate)
-        posafter = self.cvrt.general_state_to_array(self.qstate)[0]
-
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
 
-        #print(posafter - posbefore)
 
-        # reward
-        r = 0.0
-        r += 10 * (posafter - posbefore)
-        r += 0.5  # reward for staying alive
-        r -= 1e-3 * np.sum(action**2)  # to reduce jerkiness, cost on accelerations
+        # append space for trajectory on observation then use GetGeneralState to fill values
+        sp = np.append(sp, np.zeros((9,), dtype=np.double), axis = 0)
 
+        """ --------------------------REWARD FUNCTION--------------------------
+        defined as
+            r = (w_joint * r_joint) + (w_rp * r_rp) + (w_ro * r_ro) + (w_spring * r_spring)
+        where
+            w_joint     weight for r_joint, recommended 0.5
+            r_joint     measures how similar the active joint angles are to the reference motion
+                        and is equal to exp[-(x_joint - x_ref_joint)^2]
 
-        # print(self.xstate.body_x[0])
+            w_rp        weight for r_rp, recommended 0.3
+            r_rp        measures how similar the pelvis position are to the reference motion
+
+            w_ro        weight for r_ro, recommended 0.1
+            r_ro        measures how similar the pelvis orientation are to the reference motion
+
+            w_spring    eight for r_spring, recommended 0.1
+            r_spring    an additional term to help stabilize the springs on the shin joints
+        """
+
+        references = 0
+
+        # weights
+        w_joint = 0.5
+        w_pelvis_position = 0.3
+        w_pelvis_orientation = 0.1
+
+        # joint positions: 0 = hip, 1 = knee, 3 = toe (see StateGeneral() in cassie2d_structs.py)
+        j = self.qstate.left_pos[0] + self.qstate.left_pos[1] + self.qstate.left_pos[3]
+        j += self.qstate.right_pos[0] + self.qstate.right_pos[1] + self.qstate.right_pos[3]
+        j -= references  # reference positions for right and left hip, knee, and toe
+        j = math.exp(-(j ** 2))
+
+        # pelvis position: 0 = x, 1 = z (see StateGeneral() in cassie2d_structs.py)
+        p = self.xstate.body_x[0] + self.xstate.body_x[1]
+        p -= references  # reference positions for body x and z
+        p = math.exp(-(p ** 2))
+
+        # pelvis orientation: 2 = phi (see StateGeneral() in cassie2d_structs.py)
+        o = self.xstate.body_x[2]
+        o -= references  # reference position for phi
+        o = math.exp(-(o ** 2))
+
+        # finalize the reward function
+        r = w_joint * j + w_pelvis_position * p + w_pelvis_orientation * o
 
         # done
         done = False
@@ -250,7 +283,7 @@ class Cassie2dEnv(Env):
 
     @cached_property
     def observation_space(self):
-        high = np.full((17,), 1e20)
+        high = np.full((26,), 1e20)
         low = -high
         return Box(low, high)
 
