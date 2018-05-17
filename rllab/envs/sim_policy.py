@@ -23,9 +23,9 @@ if __name__ == "__main__":
     env = normalize(cassie.Cassie2dEnv())
 
     max_path_length = 10000
-    speedup = 1
+    speedup = 10
 
 
     while True:
         path = rollout(env, policy, max_path_length=max_path_length,
-                       animated=False, speedup=speedup)
+                       animated=True, speedup=speedup)
