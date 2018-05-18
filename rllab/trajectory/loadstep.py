@@ -33,18 +33,58 @@ class CassieTrajectory2d(CassieTrajectory):
         CassieTrajectory.__init__(self, filepath)
 
         """ remove 3D elements in qpos as follows """
-        # left: abduction, yaw, knee_spring, heel_spring, quaternion(conrod)
+        # left: abduction, yaw, knee_spring, heel_spring
         # right: same as left
-        self.qpos = np.delete(self.qpos, [7, 8, 11, 14, 15, 16, 17, 18,
-                                          19, 20, 23, 26, 27, 28, 29, 30], axis=1)
-        # convert body's quaternions to Euler angles
+        # self.qpos = np.delete(self.qpos, [7, 8, 11, 14,
+        #                                   19, 20, 23, 26], axis=1)
+
+        # convert base, left, and right's quaternions to Euler angles
         for i in range(self.qpos.shape[0]):
+            # base
             z, y, x = self.quat2eul(self.qpos[i][3], self.qpos[i][4],
                                     self.qpos[i][5], self.qpos[i][6])
             self.qpos[i][3] = z
             self.qpos[i][4] = y
             self.qpos[i][5] = x
-        self.qpos = np.delete(self.qpos, [6], axis=1)
+            # left
+            z, y, x = self.quat2eul(self.qpos[i][15], self.qpos[i][16],
+                                    self.qpos[i][17], self.qpos[i][18])
+            self.qpos[i][15] = z
+            self.qpos[i][16] = y
+            self.qpos[i][17] = x
+            # right
+            z, y, z = self. quat2eul(self.qpos[i][27], self.qpos[i][28],
+                                     self.qpos[i][29], self.qpos[i][30])
+            self.qpos[i][27] = z
+            self.qpos[i][28] = y
+            self.qpos[i][29] = x
+        self.qpos = np.delete(self.qpos, [1, 3, 5, 6, 7, 8, 11, 14, 15, 17, 18, 19, 20, 23, 26, 27, 29, 30, 31, 32, 33, 34], axis=1)
+
+        """ remove 3D elements in qvel as follows """
+        for i in range(self.qvel.shape[0]):
+            # base
+            z, y, x = self.quat2eul(self.qvel[i][3], self.qvel[i][4],
+                                    self.qvel[i][5], self.qvel[i][6])
+            self.qvel[i][3] = z
+            self.qvel[i][4] = y
+            self.qvel[i][5] = x
+            # left
+            z, y, x = self.quat2eul(self.qvel[i][15], self.qvel[i][16],
+                                    self.qvel[i][17], self.qvel[i][18])
+            self.qvel[i][15] = z
+            self.qvel[i][16] = y
+            self.qvel[i][17] = x
+            # right
+            z, y, z = self. quat2eul(self.qvel[i][27], self.qvel[i][28],
+                                     self.qvel[i][29], self.qvel[i][30])
+            self.qvel[i][27] = z
+            self.qvel[i][28] = y
+            self.qvel[i][29] = x
+        self.qvel = np.delete(self.qvel, [1, 3, 5, 6, 7, 8, 11, 14, 15, 17, 18, 19, 20, 23, 26, 27, 29, 30, 31], axis=1)
+
+        """ remove 3D elements in ctrl torques as follows """
+        # left_abduction, left_yaw, right_abduction, right_yaw
+        self.torque = np.delete(self.torque, [0, 1, 5, 6], axis=1)
 
     def quat2eul(self, w, x, y, z):
         """ Converts a quaternion into ZYX Euler angles. """
