@@ -18,7 +18,7 @@ with open('trajectory.csv', 'w') as f:
     # f.write(str(traj.qvel[0][0]) + ', ' + str(traj.qvel[0][1]) + ', ' + str(traj.qvel[0][2]) + ',\n')
     # f.write(str(traj.qpos[0][3]) + ', ' + str(traj.qpos[0][4]) + ', ' + str(traj.qpos[0][5]) + ', ' + str(traj.qpos[0][6]) + ', ' + str(traj.qpos[0][7]) + ',\n')
     # f.write(str(traj.qvel[0][3]) + ', ' + str(traj.qvel[0][4]) + ', ' + str(traj.qvel[0][5]) + ', ' + str(traj.qvel[0][6]) + ', ' + str(traj.qvel[0][7]) + ',\n')
-    # f.write(str(traj.qpos[0][8]) + ', ' + str(traj.qpos[0][9]) + ', ' + str(traj.qpos[0][10]) + ', ' + str(traj.qpos[0][11]) + ', ' + str(traj.qpos[0][12]) + '\n')
+    # f.write(str(traj.qpos[0][8]) + ', ' + str(traj.qpos[0][9]) + ', ' + str(traj.qpos[0][10]) + ', ' + str(traj.qpos[0][11]) + ', ' + str(traj.qpos[0][12]) + ',\n')
     # f.write(str(traj.qvel[0][8]) + ', ' + str(traj.qvel[0][9]) + ', ' + str(traj.qvel[0][10]) + ', ' + str(traj.qvel[0][11]) + ', ' + str(traj.qvel[0][12]) + '\n')
 
 # sample the trajectories for 7 seconds

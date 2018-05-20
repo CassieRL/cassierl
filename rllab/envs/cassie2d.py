@@ -54,8 +54,6 @@ assert control_mode == 'OSC' or control_mode == 'Torque' or control_mode == 'PD'
 
 print('Control mode = ' + control_mode)
 
-t = 0.0
-
 class Cassie2dEnv(Env):
     """
     Modifies the step() method to make Cassie learn what you want.
@@ -73,6 +71,8 @@ class Cassie2dEnv(Env):
         self.cassie = lib.Cassie2dInit()
         self.cvrt = convert()
 
+        self.time = 0.0
+
         lib.Display(self.cassie, True)
 
     def reset(self):
@@ -89,6 +89,8 @@ class Cassie2dEnv(Env):
         # current state
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         s = self.cvrt.operational_state_to_array(self.xstate)
+
+        self.time = 0.0
 
         return self.cvrt.operational_state_array_to_pos_invariant_array(s)
 
@@ -117,10 +119,10 @@ class Cassie2dEnv(Env):
                 lib.StepTorque(self.cassie, self.action_tor)
             elif control_mode == 'PD':
                 lib.StepPd(self.cassie, self.action_pd)
-            t += 0.0005
+            self.time += 0.0005
 
         # next state
-        lib.GetGeneralState(self.cassie, self.qstate)
+        # lib.GetGeneralState(self.cassie, self.qstate)
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
@@ -144,15 +146,52 @@ class Cassie2dEnv(Env):
         """
 
         # sample trajectory
-        ref_qpos, _ = trajectory.state(t)
+        ref_qpos = trajectory.state(self.time)[0]
 
         # append space for trajectory on observation then use GetGeneralState to fill values
         # sp[17] = base_x, sp[18] = base_z, sp[19] = base_phi
         # sp[20] = left_hip, sp[21] = left_knee, sp[22] = left_toe
         # sp[23] = right_hip, sp[24] = right_knee, sp[25] = right_toe
-        sp = np.append(sp, [ref_qpos[0], ref_qpos[1], ref_qpos[2],
-                            ref_qpos[3], ref_qpos[4], ref_qpos[6],
-                            ref_qpos[8], ref_qpos[9], ref_qpos[11]])
+        # sp = np.append(sp, [ref_qpos[0], ref_qpos[1], ref_qpos[2],
+        #                     ref_qpos[3], ref_qpos[4], ref_qpos[6],
+        #                     ref_qpos[8], ref_qpos[9], ref_qpos[11]])
+        sp[17] = ref_qpos[0]
+        sp[18] = ref_qpos[1]
+        sp[19] = ref_qpos[2]
+        sp[20] = ref_qpos[3]
+        sp[21] = ref_qpos[4]
+        sp[22] = ref_qpos[6]
+        sp[23] = ref_qpos[8]
+        sp[24] = ref_qpos[9]
+        sp[25] = ref_qpos[11]
+
+        # print('self.qstate.base_pos[0] (x) = ' + str(self.qstate.base_pos[0]))
+        # print('ref_qpos[0] (ref_base_x) = ' + str(ref_qpos[0]))
+        # print()
+        # print('self.qstate.base_pos[1] (z) = ' + str(self.qstate.base_pos[1]))
+        # print('ref_qpos[1] (ref_base_z) = ' + str(ref_qpos[1]))
+        # print()
+        # print('self.qstate.base_pos[2] (phi) = ' + str(self.qstate.base_pos[2]))
+        # print('ref_qpos[2] (ref_base_phi) = ' + str(ref_qpos[2]))
+        # print()
+        # print('self.qstate.left_pos[0] (hip) = ' + str(self.qstate.left_pos[0]))
+        # print('ref_qpos[3] (ref_left_hip) = ' + str(ref_qpos[3]))
+        # print()
+        # print('self.qstate.left_pos[1] (knee) = ' + str(self.qstate.left_pos[1]))
+        # print('ref_qpos[4] (ref_left_knee) = ' + str(ref_qpos[4]))
+        # print()
+        # print('self.qstate.left_pos[3] (toe) = ' + str(self.qstate.left_pos[3]))
+        # print('ref_qpos[6] (ref_left_toe) = ' + str(ref_qpos[6]))
+        # print()
+        # print('self.qstate.right_pos[0] (hip) = ' + str(self.qstate.left_pos[0]))
+        # print('ref_qpos[8] (ref_right_hip) = ' + str(ref_qpos[8]))
+        # print()
+        # print('self.qstate.right_pos[1] (knee) = ' + str(self.qstate.left_pos[1]))
+        # print('ref_qpos[9] (ref_right_knee) = ' + str(ref_qpos[9]))
+        # print()
+        # print('self.qstate.right_pos[3] (toe) = ' + str(self.qstate.left_pos[3]))
+        # print('ref_qpos[11] (ref_righttoe) = ' + str(ref_qpos[11]))
+        # print()
 
         # weights
         w_joint = 0.5
