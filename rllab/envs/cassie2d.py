@@ -11,6 +11,7 @@ from cassie2d_structs import ControllerTorque
 from cassie2d_structs import InterfaceStructConverter as convert
 from cassie2d_structs import StateGeneral
 from cassie2d_structs import StateOperationalSpace
+from cassie2d_trajectory import Cassie2dTraj
 from ctypes import cdll
 from rllab.envs.base import Env
 from rllab.envs.base import Step
@@ -18,6 +19,7 @@ from rllab.misc import logger
 from rllab.misc.overrides import overrides
 from rllab.spaces import Box
 
+trajectory = Cassie2dTraj('../trajectory/stepdata.bin')
 lib = cdll.LoadLibrary('../../bin/libcassie2d.so')
 c_double_p = ctypes.POINTER(ctypes.c_double)
 
@@ -27,16 +29,16 @@ lib.Cassie2dInit.restype = ctypes.c_void_p
 lib.Reset.argtypes = [ctypes.c_void_p, ctypes.POINTER(StateGeneral)]
 lib.Reset.restype = None
 
-lib.StepOsc.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerOsc)]
+lib.StepOsc.argtypes = [ctypes.c_void_p, ctypes.POINTER(ControllerOsc)]
 lib.StepOsc.restype = None
 
-lib.StepJacobian.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerForce)]
+lib.StepJacobian.argtypes = [ctypes.c_void_p, ctypes.POINTER(ControllerForce)]
 lib.StepJacobian.restype = None
 
-lib.StepTorque.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerTorque)]
+lib.StepTorque.argtypes = [ctypes.c_void_p, ctypes.POINTER(ControllerTorque)]
 lib.StepTorque.restype = None
 
-lib.StepPd.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerPd)]
+lib.StepPd.argtypes = [ctypes.c_void_p, ctypes.POINTER(ControllerPd)]
 lib.StepPd.restype = None
 
 lib.GetGeneralState.argtypes = [ctypes.c_void_p, ctypes.POINTER(StateGeneral)]
@@ -80,7 +82,7 @@ class Cassie2dEnv(Env):
                           0.0, 0.0, 0.0, 0.0, 0.0,
                           0.68111815, -1.40730357, 1.62972042, -1.77611107, -0.61968407,
                           0.0, 0.0, 0.0, 0.0, 0.0
-                         ], dtype=ctypes.c_double)
+                          ], dtype=ctypes.c_double)
         self.qstate = self.cvrt.array_to_general_state(qinit)
         lib.Reset(self.cassie, self.qstate)
 
@@ -106,7 +108,6 @@ class Cassie2dEnv(Env):
 
         # current state
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
-        s = self.cvrt.operational_state_to_array(self.xstate)
 
         # run the simulation forward by sending 'action'
         for i in range(n):
@@ -123,13 +124,12 @@ class Cassie2dEnv(Env):
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
 
-
         # append space for trajectory on observation then use GetGeneralState to fill values
-        sp = np.append(sp, np.zeros((9,), dtype=np.double), axis = 0)
+        sp = np.append(sp, np.zeros((9,), dtype=np.double), axis=0)
 
         """ --------------------------REWARD FUNCTION--------------------------
-        defined as
-            r = (w_joint * r_joint) + (w_rp * r_rp) + (w_ro * r_ro) + (w_spring * r_spring)
+        defined by
+            r = w_joint*r_joint + w_rp*r_rp + w_ro*r_ro + w_spring*r_spring
         where
             w_joint     weight for r_joint, recommended 0.5
             r_joint     measures how similar the active joint angles are to the reference motion
@@ -145,7 +145,9 @@ class Cassie2dEnv(Env):
             r_spring    an additional term to help stabilize the springs on the shin joints
         """
 
-        references = 0
+        # sample trajectory
+        # ??? sample because we don't know t ??? Questioning
+        _, ref_qpos, _ = trajectory.sample()
 
         # weights
         w_joint = 0.5
@@ -153,23 +155,26 @@ class Cassie2dEnv(Env):
         w_pelvis_orientation = 0.1
 
         # joint positions: 0 = hip, 1 = knee, 3 = toe (see StateGeneral() in cassie2d_structs.py)
-        j = self.qstate.left_pos[0] + self.qstate.left_pos[1] + self.qstate.left_pos[3]
-        j += self.qstate.right_pos[0] + self.qstate.right_pos[1] + self.qstate.right_pos[3]
-        j -= references  # reference positions for right and left hip, knee, and toe
-        j = math.exp(-(j ** 2))
+        j = self.qstate.left_pos[0] + \
+            self.qstate.left_pos[1] + self.qstate.left_pos[3]
+        j += self.qstate.right_pos[0] + \
+            self.qstate.right_pos[1] + self.qstate.right_pos[3]
+        j -= ref_qpos[3] + ref_qpos[4] + ref_qpos[6] + \
+            ref_qpos[8] + ref_qpos[9] + ref_qpos[11]
+        j = math.exp(-(j**2))
 
         # pelvis position: 0 = x, 1 = z (see StateGeneral() in cassie2d_structs.py)
         p = self.xstate.body_x[0] + self.xstate.body_x[1]
-        p -= references  # reference positions for body x and z
-        p = math.exp(-(p ** 2))
+        p -= ref_qpos[0] + ref_qpos[1]  # reference positions for body x and z
+        p = math.exp(-(p**2))
 
         # pelvis orientation: 2 = phi (see StateGeneral() in cassie2d_structs.py)
         o = self.xstate.body_x[2]
-        o -= references  # reference position for phi
-        o = math.exp(-(o ** 2))
+        o -= ref_qpos[2]  # reference position for phi
+        o = math.exp(-(o**2))
 
         # finalize the reward function
-        r = w_joint * j + w_pelvis_position * p + w_pelvis_orientation * o
+        r = w_joint*j + w_pelvis_position*p + w_pelvis_orientation*o
 
         # done
         done = False
@@ -183,7 +188,6 @@ class Cassie2dEnv(Env):
     def render(self):
         lib.Render(self.cassie)
         pass
-
 
     ###################################################################################################################
     #                              Functions for different action spaces
@@ -209,60 +213,67 @@ class Cassie2dEnv(Env):
     #
     #     return
 
-
     ###################################################################################################################
     #                             THE CONTROLLERS BELOW ARE FOR SQUATTING, NOT FOR RL
     ###################################################################################################################
 
     def standing_controller_osc(self, zpos_target, zvel_target):
-        #get operational state
+        # get operational state
         lib.GetOperationalSpaceState(self.cassie, ctypes.byref(self.xstate))
 
         stance_kp = 100.0
 
-        #first we want to hold both feet on the ground
+        # first we want to hold both feet on the ground
         self.action_osc.left_xdd[0] = 0.0
         self.action_osc.left_xdd[1] = stance_kp*(-5e-3 - self.xstate.left_x[1])
         self.action_osc.right_xdd[0] = 0.0
-        self.action_osc.right_xdd[1] = stance_kp*(-5e-3 - self.xstate.right_x[1])
+        self.action_osc.right_xdd[1] = stance_kp * \
+            (-5e-3 - self.xstate.right_x[1])
 
-        #calculate desired body x position based on average foot pos
+        # calculate desired body x position based on average foot pos
         xpos_target = (self.xstate.left_x[0] + self.xstate.right_x[0])/2.0
         xvel_target = 0.0
 
         com_kp = 100.0
         com_kd = 20.0
 
-        self.action_osc.body_xdd[0] = com_kp*(xpos_target - self.xstate.body_x[0]) + com_kd*(xvel_target - self.xstate.body_xd[0])
-        self.action_osc.body_xdd[1] = com_kp*(zpos_target - self.xstate.body_x[1]) + com_kd*(zvel_target - self.xstate.body_xd[1])
+        self.action_osc.body_xdd[0] = com_kp*(xpos_target - self.xstate.body_x[0]) + com_kd*(
+            xvel_target - self.xstate.body_xd[0])
+        self.action_osc.body_xdd[1] = com_kp*(zpos_target - self.xstate.body_x[1]) + com_kd*(
+            zvel_target - self.xstate.body_xd[1])
 
-        #last apply a small effort to keep pelvis from drifting too far from 0.0
+        # last apply a small effort to keep pelvis from drifting too far from 0.0
         pitch_kp = 20.0
         pitch_kd = 10.0
-        self.action_osc.pitch_add = pitch_kp*(0.0 - self.xstate.body_x[2]) + pitch_kd*(0.0 - self.xstate.body_xd[2])
+        self.action_osc.pitch_add = pitch_kp * \
+            (0.0 - self.xstate.body_x[2]) + \
+            pitch_kd*(0.0 - self.xstate.body_xd[2])
 
         lib.StepOsc(self.cassie, ctypes.byref(self.action_osc))
 
     def standing_controller_jacobian(self, zpos_target, zvel_target):
-        #get operational state
+        # get operational state
         lib.GetOperationalSpaceState(self.cassie, ctypes.byref(self.xstate))
 
-        #calculate desired body x position based on average foot pos
+        # calculate desired body x position based on average foot pos
         xpos_target = (self.xstate.left_x[0] + self.xstate.right_x[0])/2.0
         xvel_target = 0.0
 
         com_kp = 200.0
         com_kd = 50.0
 
-        self.action_jac.left_force[0] = com_kp*(xpos_target - self.xstate.body_x[0]) + com_kd*(xvel_target - self.xstate.body_xd[0])
+        self.action_jac.left_force[0] = com_kp*(
+            xpos_target - self.xstate.body_x[0]) + com_kd*(xvel_target - self.xstate.body_xd[0])
         self.action_jac.right_force[0] = self.action_jac.left_force[0]
-        self.action_jac.left_force[1] = 0.5*9.806*31.0 + com_kp*(zpos_target - self.xstate.body_x[1]) + com_kd*(zvel_target - self.xstate.body_xd[1])
+        self.action_jac.left_force[1] = 0.5*9.806*31.0 + com_kp*(
+            zpos_target - self.xstate.body_x[1]) + com_kd*(zvel_target - self.xstate.body_xd[1])
         self.action_jac.right_force[1] = self.action_jac.left_force[1]
 
-        #last apply a small effort to keep pelvis from drifting too far from 0.0
+        # last apply a small effort to keep pelvis from drifting too far from 0.0
         pitch_kp = 100.0
         pitch_kd = 10.0
-        self.action_jac.left_force[2] = pitch_kp*(0.0 - self.xstate.body_x[2]) + pitch_kd*(0.0 - self.xstate.body_xd[2])
+        self.action_jac.left_force[2] = pitch_kp*(
+            0.0 - self.xstate.body_x[2]) + pitch_kd*(0.0 - self.xstate.body_xd[2])
         self.action_jac.right_force[2] = self.action_jac.left_force[2]
 
         if self.action_jac.left_force[1] < 0.0:
@@ -275,7 +286,6 @@ class Cassie2dEnv(Env):
         #    self.action_jac.right_force[i] = -1.0*self.action_jac.right_force[i]
 
         lib.StepJacobian(self.cassie, ctypes.byref(self.action_jac))
-
 
     ####################################################################################################################
     #                         Functions needed for RLLAB action space and observation space
@@ -302,7 +312,7 @@ class Cassie2dEnv(Env):
             6. right_toe
         """
         if control_mode == 'OSC':
-            high = np.full((7,), 2e1) #accel of 100 may be reasonable
+            high = np.full((7,), 2e1)  # accel of 100 may be reasonable
             low = np.array([-2e1, -2e1, -2e1, 0, -2e1, 0, -2e1])
         elif control_mode == 'Torque':
             high = np.array([12.0, 12.0, 0.9, 12.0, 12.0, 0.9])
