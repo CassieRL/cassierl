@@ -1,5 +1,4 @@
 import ctypes
-import math
 import numpy as np
 import time
 
@@ -55,6 +54,7 @@ assert control_mode == 'OSC' or control_mode == 'Torque' or control_mode == 'PD'
 
 print('Control mode = ' + control_mode)
 
+t = 0.0
 
 class Cassie2dEnv(Env):
     """
@@ -110,22 +110,20 @@ class Cassie2dEnv(Env):
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
 
         # run the simulation forward by sending 'action'
-        for i in range(n):
+        for _ in range(n):
             if control_mode == 'OSC':
                 lib.StepOsc(self.cassie, self.action_osc)
             elif control_mode == 'Torque':
                 lib.StepTorque(self.cassie, self.action_tor)
             elif control_mode == 'PD':
                 lib.StepPd(self.cassie, self.action_pd)
+            t += 0.0005
 
         # next state
         lib.GetGeneralState(self.cassie, self.qstate)
         lib.GetOperationalSpaceState(self.cassie, self.xstate)
         sp = self.cvrt.operational_state_to_array(self.xstate)
         sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
-
-        # append space for trajectory on observation then use GetGeneralState to fill values
-        sp = np.append(sp, np.zeros((9,), dtype=np.double), axis=0)
 
         """ --------------------------REWARD FUNCTION--------------------------
         defined by
@@ -146,8 +144,15 @@ class Cassie2dEnv(Env):
         """
 
         # sample trajectory
-        # ??? sample because we don't know t ??? Questioning
-        _, ref_qpos, _ = trajectory.sample()
+        ref_qpos, _ = trajectory.state(t)
+
+        # append space for trajectory on observation then use GetGeneralState to fill values
+        # sp[17] = base_x, sp[18] = base_z, sp[19] = base_phi
+        # sp[20] = left_hip, sp[21] = left_knee, sp[22] = left_toe
+        # sp[23] = right_hip, sp[24] = right_knee, sp[25] = right_toe
+        sp = np.append(sp, [ref_qpos[0], ref_qpos[1], ref_qpos[2],
+                            ref_qpos[3], ref_qpos[4], ref_qpos[6],
+                            ref_qpos[8], ref_qpos[9], ref_qpos[11]])
 
         # weights
         w_joint = 0.5
@@ -155,33 +160,28 @@ class Cassie2dEnv(Env):
         w_pelvis_orientation = 0.1
 
         # joint positions: 0 = hip, 1 = knee, 3 = toe (see StateGeneral() in cassie2d_structs.py)
-        j = self.qstate.left_pos[0] + \
-            self.qstate.left_pos[1] + self.qstate.left_pos[3]
-        j += self.qstate.right_pos[0] + \
-            self.qstate.right_pos[1] + self.qstate.right_pos[3]
-        j -= ref_qpos[3] + ref_qpos[4] + ref_qpos[6] + \
-            ref_qpos[8] + ref_qpos[9] + ref_qpos[11]
-        j = math.exp(-(j**2))
+        j = self.qstate.left_pos[0] + self.qstate.left_pos[1] + self.qstate.left_pos[3]
+        j += self.qstate.right_pos[0] + self.qstate.right_pos[1] + self.qstate.right_pos[3]
+        j -= sum(sp[20:])
+        j = np.exp(-(j**2))
 
         # pelvis position: 0 = x, 1 = z (see StateGeneral() in cassie2d_structs.py)
         p = self.xstate.body_x[0] + self.xstate.body_x[1]
-        p -= ref_qpos[0] + ref_qpos[1]  # reference positions for body x and z
-        p = math.exp(-(p**2))
+        p -= sum(sp[17:19])
+        p = np.exp(-(p**2))
 
         # pelvis orientation: 2 = phi (see StateGeneral() in cassie2d_structs.py)
         o = self.xstate.body_x[2]
-        o -= ref_qpos[2]  # reference position for phi
-        o = math.exp(-(o**2))
+        o -= sp[19]  # reference position for phi
+        o = np.exp(-(o**2))
 
         # finalize the reward function
         r = w_joint*j + w_pelvis_position*p + w_pelvis_orientation*o
 
-        # done
+        # termination
         done = False
-        if (self.xstate.body_x[1] < 0.7):
+        if (self.xstate.body_x[1] < 0.6) or (self.xstate.body_x[1] > 1.2) or (r < 0.6):
             done = True
-            # r -= 500
-            # print('Terimanation cost = 500')
 
         return Step(observation=sp, reward=r, done=done)
 
@@ -189,33 +189,37 @@ class Cassie2dEnv(Env):
         lib.Render(self.cassie)
         pass
 
-    ###################################################################################################################
-    #                              Functions for different action spaces
-    ###################################################################################################################
-    # def action_space_torque(self, action):
-    #     self.action_tor = self.cvrt.array_to_torque_action(action)
-    #
-    # def action_space_osc(self, action, speedup=10):
-    #     # this will take 'action' from the RL, and convert them into 'action' that can be sent to the OSC
-    #     self.action_osc = self.cvrt.array_to_operational_action(action)
-    #
-    #     # current state
-    #     lib.GetOperationalSpaceState(self.cassie, self.xstate)
-    #     s = self.cvrt.operational_state_to_array(self.xstate)
-    #
-    #     for i in range(speedup):
-    #         lib.StepOsc(self.cassie, self.action_osc)
-    #
-    #     # next state
-    #     lib.GetOperationalSpaceState(self.cassie, self.xstate)
-    #     sp = self.cvrt.operational_state_to_array(self.xstate)
-    #     sp = self.cvrt.operational_state_array_to_pos_invariant_array(sp)
-    #
-    #     return
+    ####################################################################################################################
+    #                     Controller to step through a preload trajectory and export to a CSV file
+    ####################################################################################################################
+    def step_traj_export_csv(self, t):
+        qpos, qvel = trajectory.state(t)
+        torques = trajectory.action(t)[2]
 
-    ###################################################################################################################
+        kp = 10.0
+        kd = 5.0
+        joints = [3, 4, 6, 8, 9, 11]
+        angles = []
+
+        for i in range(len(joints)):
+            angles.append((torques[i] - kd*(0.0 - qvel[joints[i]]))/kp + qpos[joints[i]])
+
+        with open('trajectory.csv', 'a') as f:
+            f.write(str(t) + ',')
+            for i in range(len(angles)):
+                f.write(str(angles[i]) + ',')
+            for i in range(len(joints)):
+                f.write(str(qvel[joints[i]]))
+                if i < len(joints) - 1:
+                    f.write(',')
+            f.write('\n')
+
+        self.action_pd = self.cvrt.array_to_pd_action(angles)
+        lib.StepPd(self.cassie, ctypes.byref(self.action_pd))
+
+    ####################################################################################################################
     #                             THE CONTROLLERS BELOW ARE FOR SQUATTING, NOT FOR RL
-    ###################################################################################################################
+    ####################################################################################################################
 
     def standing_controller_osc(self, zpos_target, zvel_target):
         # get operational state

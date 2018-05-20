@@ -1,10 +1,9 @@
 import numpy as np
 
-from cassie2d_trajectory import Cassie2dEnv
+from cassie2d import Cassie2dEnv
 from cassie2d_trajectory import Cassie2dTraj
 
 traj = Cassie2dTraj('../trajectory/stepdata.bin')
-
 env = Cassie2dEnv()
 env.reset()
 t = 0.0
@@ -24,5 +23,5 @@ with open('trajectory.csv', 'w') as f:
 
 # sample the trajectories for 7 seconds
 while t <= 7.0:
-    env.step(t)
+    env.step_traj_export_csv(t)
     t += 0.0005

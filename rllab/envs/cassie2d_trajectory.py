@@ -1,58 +1,8 @@
-import ctypes
-import math
 import numpy as np
 import random
-import time
-
-from cached_property import cached_property
-from cassie2d_structs import ControllerForce
-from cassie2d_structs import ControllerOsc
-from cassie2d_structs import ControllerPd
-from cassie2d_structs import ControllerTorque
-from cassie2d_structs import InterfaceStructConverter as convert
-from cassie2d_structs import StateGeneral
-from cassie2d_structs import StateOperationalSpace
-from ctypes import cdll
-from rllab.envs.base import Env
-from rllab.envs.base import Step
-from rllab.misc import logger
-from rllab.misc.overrides import overrides
-from rllab.spaces import Box
-
-lib = cdll.LoadLibrary('../../bin/libcassie2d.so')
-c_double_p = ctypes.POINTER(ctypes.c_double)
-
-lib.Cassie2dInit.argtypes = None
-lib.Cassie2dInit.restype = ctypes.c_void_p
-
-lib.Reset.argtypes = [ctypes.c_void_p, ctypes.POINTER(StateGeneral)]
-lib.Reset.restype = None
-
-lib.StepOsc.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerOsc)]
-lib.StepOsc.restype = None
-
-lib.StepJacobian.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerForce)]
-lib.StepJacobian.restype = None
-
-lib.StepTorque.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerTorque)]
-lib.StepTorque.restype = None
-
-lib.StepPd.argtypes = [ctypes.c_void_p,ctypes.POINTER(ControllerPd)]
-lib.StepPd.restype = None
-
-lib.GetGeneralState.argtypes = [ctypes.c_void_p, ctypes.POINTER(StateGeneral)]
-lib.GetGeneralState.restype = None
-
-lib.GetOperationalSpaceState.argtypes = [ctypes.c_void_p, ctypes.POINTER(StateOperationalSpace)]
-lib.GetOperationalSpaceState.restype = None
-
-lib.Display.argtypes = [ctypes.c_void_p, ctypes.c_bool]
-lib.Display.restype = None
-
-print('Control mode = PD')
 
 
-class Cassie3dTrajectory:
+class Cassie3dTraj:
     def __init__(self, filepath):
         n = 1 + 35 + 32 + 10 + 10 + 10
         data = np.fromfile(filepath, dtype=np.double).reshape((-1, n))
@@ -78,9 +28,9 @@ class Cassie3dTrajectory:
         return (self.time[i], self.qpos[i], self.qvel[i])
 
 
-class Cassie2dTraj(Cassie3dTrajectory):
+class Cassie2dTraj(Cassie3dTraj):
     def __init__(self, filepath):
-        Cassie3dTrajectory.__init__(self, filepath)
+        Cassie3dTraj.__init__(self, filepath)
 
         """ Converting 3D qpos to 2D qpos
         The ordering of 3D qpos is as follows:
@@ -199,70 +149,3 @@ class Cassie2dTraj(Cassie3dTrajectory):
         Z = np.arctan2(t3, t4)
 
         return Z, Y, X
-
-
-traj = Cassie2dTraj('../trajectory/stepdata.bin')
-
-
-class Cassie2dEnv(Env):
-    """
-    Modifies the step() method to make Cassie learn what you want.
-    """
-
-    def __init__(self):
-        self.qstate = StateGeneral()
-        self.xstate = StateOperationalSpace()
-
-        self.action_tor = ControllerTorque()
-        self.action_pd = ControllerPd()
-
-        self.cassie = lib.Cassie2dInit()
-        self.cvrt = convert()
-
-        lib.Display(self.cassie, True)
-
-    def reset(self):
-        qinit = np.array([0.0, 1.023817778, 0.039060153,
-                          0.652777851, -0.023127310, -0.011201293,
-                          0.442888260, 0.958797753, 0.026418149, -0.282398582, -1.570796327,
-                          2.695951939, 0.002625255, -2.541116953, -2.552584648, 2.013491392,
-                          0.355475724, 0.994348824, -0.006222207, -0.105870359, -1.570796327,
-                          -0.661857545, 0.000059383, -0.137214229, -0.180297419, -0.741537094
-                         ], dtype=ctypes.c_double)
-        self.qstate = self.cvrt.array_to_general_state(qinit)
-        lib.Reset(self.cassie, self.qstate)
-
-        # current state
-        lib.GetOperationalSpaceState(self.cassie, self.xstate)
-        s = self.cvrt.operational_state_to_array(self.xstate)
-
-        return self.cvrt.operational_state_array_to_pos_invariant_array(s)
-
-    def step(self, t):
-        qpos, qvel = traj.state(t)
-        torques = traj.action(t)[2]
-
-        kp = 10.0
-        kd = 5.0
-        joints = [3, 4, 6, 8, 9, 11]
-        angles = []
-
-        for i in range(len(joints)):
-            angles.append((torques[i] - kd*(0.0 - qvel[joints[i]]))/kp + qpos[joints[i]])
-
-        with open('trajectory.csv', 'a') as f:
-            f.write(str(t) + ',')
-            for i in range(len(angles)):
-                f.write(str(angles[i]) + ',')
-            for i in range(len(joints)):
-                f.write(str(qvel[joints[i]]))
-                if i < len(joints) - 1:
-                    f.write(',')
-            f.write('\n')
-
-        self.action_pd = self.cvrt.array_to_pd_action(angles)
-        lib.StepPd(self.cassie, ctypes.byref(self.action_pd))
-
-    def render(self):
-        lib.Render(self.cassie)
-        pass
