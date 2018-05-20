@@ -201,12 +201,12 @@ class Cassie2dEnv(Env):
         # joint positions: 0 = hip, 1 = knee, 3 = toe (see StateGeneral() in cassie2d_structs.py)
         j = self.qstate.left_pos[0] + self.qstate.left_pos[1] + self.qstate.left_pos[3]
         j += self.qstate.right_pos[0] + self.qstate.right_pos[1] + self.qstate.right_pos[3]
-        j -= sum(sp[20:])
+        j -= sum(sp[20:])  # reference positions for hip, knee, toe of two legs
         j = np.exp(-(j**2))
 
         # pelvis position: 0 = x, 1 = z (see StateGeneral() in cassie2d_structs.py)
         p = self.xstate.body_x[0] + self.xstate.body_x[1]
-        p -= sum(sp[17:19])
+        p -= sum(sp[17:19])  # reference position for body pelvis x and z
         p = np.exp(-(p**2))
 
         # pelvis orientation: 2 = phi (see StateGeneral() in cassie2d_structs.py)
