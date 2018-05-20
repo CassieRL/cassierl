@@ -24,7 +24,7 @@ def run_task(*_):
         policy = GaussianMLPPolicy(
             env_spec=env.spec,
             # The neural network policy should have two hidden layers, each with 128 hidden units.
-            hidden_sizes=(32, 32),
+            hidden_sizes=(128, 128),
             init_std=1.0,
             # adaptive_std=True,
         )
@@ -39,7 +39,7 @@ def run_task(*_):
         max_path_length=1000,  # dt = (1/2000)*n, where n is Step(n)
         n_itr=1000,
         discount=0.99,
-        step_size=0.001,      # default was 0.01
+        step_size=0.005,      # default was 0.01
         # Uncomment both lines (this and the plot parameter below) to enable plotting
         plot=True,
         use_gpu=True
