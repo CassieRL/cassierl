@@ -52,7 +52,7 @@ lib.Display.restype = None
 print('Control mode = PD')
 
 
-class CassieTrajectory:
+class Cassie3dTrajectory:
     def __init__(self, filepath):
         n = 1 + 35 + 32 + 10 + 10 + 10
         data = np.fromfile(filepath, dtype=np.double).reshape((-1, n))
@@ -78,9 +78,9 @@ class CassieTrajectory:
         return (self.time[i], self.qpos[i], self.qvel[i])
 
 
-class Cassie2dTraj(CassieTrajectory):
+class Cassie2dTraj(Cassie3dTrajectory):
     def __init__(self, filepath):
-        CassieTrajectory.__init__(self, filepath)
+        Cassie3dTrajectory.__init__(self, filepath)
 
         """ Converting 3D qpos to 2D qpos
         The ordering of 3D qpos is as follows:
