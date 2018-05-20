@@ -78,62 +78,109 @@ class CassieTrajectory:
         return (self.time[i], self.qpos[i], self.qvel[i])
 
 
-class CassieTrajectory2d(CassieTrajectory):
+class Cassie2dTraj(CassieTrajectory):
     def __init__(self, filepath):
         CassieTrajectory.__init__(self, filepath)
 
-        """ remove 3D elements in qpos as follows """
-        # left: abduction, yaw, knee_spring, heel_spring
-        # right: same as left
-        # self.qpos = np.delete(self.qpos, [7, 8, 11, 14,
-        #                                   19, 20, 23, 26], axis=1)
+        """ Converting 3D qpos to 2D qpos
+        The ordering of 3D qpos is as follows:
 
+                0  1  2            3 4 5 6
+        BASE    x  y  z  base_quat(w x y z)
+
+                7          8    9    10    11           12     13   14          15           16                       17 18 19 20
+        LEFT    abduction  yaw  hip  knee  knee_spring  ankle  toe  anke_rod_1  ankle_rod_2  heel_spring  conrod_quat(w  x  y  z)
+
+                21         22   23   24    25           26     27   28          29           30                       31 32 33 34
+        RIGHT   abduction  yaw  hip  knee  knee_spring  ankle  toe  anke_rod_1  ankle_rod_2  heel_spring  conrod_quat(w  x  y  z)
+
+        Convert Quaternions to Euler angles but only keep the Y-axis rotation
+        Remove abduction, yaw, knee_spring, ankle_rod_1, ankle_rod_2, heel_spring of two legs
+        2D qpos should look like like StateGeneral() in cassie2d_structs.py, but ignore the velocity fields
+
+        The resulting 2D qpos should be as follows:
+
+                0  1  2
+        BASE    x  z  base_euler_Y
+
+                3    4     5      6    7
+        LEFT    hip  knee  ankle  toe  rod_euler_Y
+
+                8    9     10     11   12
+        RIGHT   hip  knee  ankle  toe  rod_euler_Y
+        """
         # convert base, left, and right's quaternions to Euler angles
+        # but only keep the Y angle since we are removing the y-axis
         for i in range(self.qpos.shape[0]):
             # base
-            z, y, x = self.quat2eul(self.qpos[i][3], self.qpos[i][4],
-                                    self.qpos[i][5], self.qpos[i][6])
-            self.qpos[i][3] = z
-            self.qpos[i][4] = y
-            self.qpos[i][5] = x
+            _, self.qpos[i][4], _ = self.quat2eul(self.qpos[i][3],
+                                                  self.qpos[i][4],
+                                                  self.qpos[i][5],
+                                                  self.qpos[i][6])
             # left
-            z, y, x = self.quat2eul(self.qpos[i][15], self.qpos[i][16],
-                                    self.qpos[i][17], self.qpos[i][18])
-            self.qpos[i][15] = z
-            self.qpos[i][16] = y
-            self.qpos[i][17] = x
+            _, self.qpos[i][18], _ = self.quat2eul(self.qpos[i][17],
+                                                   self.qpos[i][18],
+                                                   self.qpos[i][19],
+                                                   self.qpos[i][20])
             # right
-            z, y, z = self. quat2eul(self.qpos[i][27], self.qpos[i][28],
-                                     self.qpos[i][29], self.qpos[i][30])
-            self.qpos[i][27] = z
-            self.qpos[i][28] = y
-            self.qpos[i][29] = x
-        self.qpos = np.delete(self.qpos, [1, 3, 5, 6, 7, 8, 11, 14, 15, 17, 18, 19, 20, 23, 26, 27, 29, 30, 31, 32, 33, 34], axis=1)
+            _, self.qpos[i][32], _ = self. quat2eul(self.qpos[i][31],
+                                                    self.qpos[i][32],
+                                                    self.qpos[i][33],
+                                                    self.qpos[i][34])
+        # remove 3D components
+        self.qpos = np.delete(self.qpos, [1, 3, 5, 6,
+                                          7, 8, 11, 14, 15, 16, 17, 19, 20,
+                                          21, 22, 25, 28, 29, 30, 31, 33, 34],
+                              axis=1)
 
-        """ remove 3D elements in qvel as follows """
-        for i in range(self.qvel.shape[0]):
-            # base
-            z, y, x = self.quat2eul(self.qvel[i][3], self.qvel[i][4],
-                                    self.qvel[i][5], self.qvel[i][6])
-            self.qvel[i][3] = z
-            self.qvel[i][4] = y
-            self.qvel[i][5] = x
-            # left
-            z, y, x = self.quat2eul(self.qvel[i][15], self.qvel[i][16],
-                                    self.qvel[i][17], self.qvel[i][18])
-            self.qvel[i][15] = z
-            self.qvel[i][16] = y
-            self.qvel[i][17] = x
-            # right
-            z, y, z = self. quat2eul(self.qvel[i][27], self.qvel[i][28],
-                                     self.qvel[i][29], self.qvel[i][30])
-            self.qvel[i][27] = z
-            self.qvel[i][28] = y
-            self.qvel[i][29] = x
-        self.qvel = np.delete(self.qvel, [1, 3, 5, 6, 7, 8, 11, 14, 15, 17, 18, 19, 20, 23, 26, 27, 29, 30, 31], axis=1)
+        """ Converting 3D qvel to 2D qvel
+        The ordering of 3D qvel is as follows:
 
-        """ remove 3D elements in ctrl torques as follows """
-        # left_abduction, left_yaw, right_abduction, right_yaw
+                0  1  2                  3 4 5
+        BASE    x  y  z  base_quat_deriv(x y z)
+
+                6          7    8    9     10           11     12   13          14           15                             16 17 18
+        LEFT    abduction  yaw  hip  knee  knee_spring  ankle  toe  anke_rod_1  ankle_rod_2  heel_spring  conrod_quat_deriv(x  y  z)
+
+                19         20   21   22    23           24     25   26          27           28                             29 30 31
+        RIGHT   abduction  yaw  hip  knee  knee_spring  ankle  toe  anke_rod_1  ankle_rod_2  heel_spring  conrod_quat_deriv(x  y  z)
+
+        Remove abduction, yaw, knee_spring, ankle_rod_1, ankle_rod_2, heel_spring of two legs
+        2D qvel should look like like StateGeneral() in cassie2d_structs.py, but ignore the position fields
+
+        The resulting 2D qvel should be as follows:
+
+                0  1  2
+        BASE    x  z  base_quat_deriv_Y
+
+                3    4     5      6    7
+        LEFT    hip  knee  ankle  toe  rod_quat_deriv_Y
+
+                8    9     10     11   12
+        RIGHT   hip  knee  ankle  toe  rod_quat_deriv_Y
+        """
+        self.qvel = np.delete(self.qvel, [1, 3, 5,
+                                          6, 7, 10, 13, 14, 15, 16, 18,
+                                          19, 20, 23, 26, 27, 28, 29, 31],
+                              axis=1)
+
+        """ Converting 3D torque to 2D torque
+        The ordering of 3D torque as follow:
+
+        0               1         2         3                 4
+        left_abduction  left_yaw  left_hip  left_knee_spring  left_toe
+
+        5                6          7          8                  9
+        right_abduction  right_yaw  right_hip  right_knee_spring  right_toe
+
+        Compare cassie2d_stiff.xml with cassie3d_stiff.xml
+        Remove abduction and yaw actuators of two legs
+
+        The resulting 2D torque should be as follows (see <actuator> in cassie2d_stiff.xml):
+
+        0         1                 2         3          4                  5
+        left_hip  left_knee_spring  left_toe  right_hip  right_knee_spring  right_toe
+        """
         self.torque = np.delete(self.torque, [0, 1, 5, 6], axis=1)
 
     def quat2eul(self, w, x, y, z):
@@ -154,7 +201,7 @@ class CassieTrajectory2d(CassieTrajectory):
         return Z, Y, X
 
 
-traj = CassieTrajectory2d('../trajectory/stepdata.bin')
+traj = Cassie2dTraj('../trajectory/stepdata.bin')
 
 
 class Cassie2dEnv(Env):
@@ -175,12 +222,12 @@ class Cassie2dEnv(Env):
         lib.Display(self.cassie, True)
 
     def reset(self):
-        qinit = np.array([0.0, 1.023818, 0.03906,
-                          0.652778, -0.023127, -0.05085,
-                          0.442888, 0.958798, 0.026418, -0.282399, 1.570796,
-                          0.002625, 0.3350840, -2.552585, -0.017491, -1.570796,
-                          0.035659, -0.013044, 0.994349, 0.004478, 1.570796,
-                          -0.661858, 0.000059, -0.1372140, -0.1802970, 0.114799
+        qinit = np.array([0.0, 1.023817778, 0.039060153,
+                          0.652777851, -0.023127310, -0.011201293,
+                          0.442888260, 0.958797753, 0.026418149, -0.282398582, -1.570796327,
+                          2.695951939, 0.002625255, -2.541116953, -2.552584648, 2.013491392,
+                          0.355475724, 0.994348824, -0.006222207, -0.105870359, -1.570796327,
+                          -0.661857545, 0.000059383, -0.137214229, -0.180297419, -0.741537094
                          ], dtype=ctypes.c_double)
         self.qstate = self.cvrt.array_to_general_state(qinit)
         lib.Reset(self.cassie, self.qstate)
