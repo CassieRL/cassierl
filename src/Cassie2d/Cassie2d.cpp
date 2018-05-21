@@ -99,7 +99,7 @@ void Cassie2d::StepPd(ControllerPd* action)
   dyn_state_.UpdateDynamicState(&dyn_model_);
 
   // proportional gain and derivative gain
-  double kp = 10.0, kd = 5.0;
+  double kp = 100.0, kd = 20.0;
   // corresponding 0-index joints of the actuators. Order matters
   const int joints[nU] = { 3, 4, 6, 8, 9, 11 };
   // contains torques converted from target angles

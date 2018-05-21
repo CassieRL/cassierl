@@ -50,7 +50,7 @@
   </asset>
 
   <worldbody>
-    <geom name='floor' pos='0 0 0' size='5 5 .125' type='plane' material='plane' condim='3' conaffinity='7'/>
+    <geom name='floor' pos='10 0 0' size='100 5 .125' type='plane' material='plane' condim='3' conaffinity='7'/>
     <light mode='trackcom' pos='0 0 5' dir='0 0 -1'/>
     <light directional='true' pos='0 0 3' dir='0 0 -1' diffuse='0.2 0.2 0.2' specular='0 0 0'/>
     <camera name='trackcom' pos='0 -3 2' zaxis='0 -1 0.5' mode='trackcom'/>
